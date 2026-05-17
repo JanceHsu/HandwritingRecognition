@@ -1,0 +1,43 @@
+Environment snapshot for HandwritingRecognition
+
+Date: 2026-05-17
+
+Python runtime:
+- Version: 3.13.x (recommended)
+
+Python packages (examples):
+- torch: 2.12+ (use CUDA-enabled wheel when training on GPU)
+- torchvision: compatible with selected torch version
+- opencv-python: 4.x (only used by some scripts; runtime UI uses Qt QImage path)
+
+C++ toolchain (recommended):
+- Qt: 6.11.1 (msvc2022_64)
+- MSVC: Visual Studio 2022 (Build Tools or full)
+- CMake: 3.20+ (or the VS2022 bundled CMake)
+- LibTorch: matching the PyTorch version and desired backend (CPU-only or CUDA-enabled)
+
+CUDA / LibTorch notes:
+- For GPU training and CUDA inference, use a LibTorch CUDA build that matches your CUDA Toolkit (tested with CUDA 12.8 and LibTorch 2.5.x CUDA builds).
+- Ensure `LIBTORCH_DIR` points to the chosen LibTorch; package and `run_digit_recog.bat` will copy the matching DLLs into `dist`.
+
+Runtime configuration:
+- Default inference device: `auto` recommended (falls back to CPU if CUDA unavailable)
+- Runtime override: `LIBTORCH_DEVICE=cpu|cuda|auto`
+- LibTorch path override: `LIBTORCH_DIR=<path-to-libtorch>`
+
+Paths used for local development in this workspace:
+- Qt: D:/Develop/Qt/6.11.1/msvc2022_64
+- LibTorch: D:/Develop/libtorch (set `LIBTORCH_DIR` to switch to CUDA build)
+
+Scripts:
+- `scripts/prepare_libtorch_cuda.ps1`: assists switching to a CUDA LibTorch build and updating packaging references.
+- `scripts/package_release.ps1`: packages the app and copies only classified models from `artifacts/models/{cpu,gpu}` into `dist/models`.
+
+Quick checks:
+```powershell
+py -3.13 --version
+& "D:\Develop\Qt\Tools\CMake_64\bin\cmake.exe" --version
+& "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin\nvcc.exe" --version  # if using CUDA
+```
+
+If you need a reproducible environment for CI, pin exact package versions in `requirements.txt` and record the selected LibTorch build in `environment.txt` before release.
