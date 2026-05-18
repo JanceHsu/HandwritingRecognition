@@ -20,5 +20,5 @@ test_log.md
 *.suo
 *.VC.db
 *.VC.opendb
-.agent/
+.agents/
 .vscode/
