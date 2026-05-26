@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QElapsedTimer>
 #include <QMainWindow>
 #include <QPointF>
 #include <QSize>
@@ -82,5 +83,7 @@ private:
     QSize trackerFrameSize_;
     bool trackerCursorValid_ = false;
     bool trackerDrawingActive_ = false;
+    QElapsedTimer airStrokeReleaseTimer_;
+    bool airStrokeReleasePending_ = false;
     bool recognitionBusy_ = false;
 };

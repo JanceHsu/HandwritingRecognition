@@ -32,6 +32,13 @@ target_link_libraries(handwriting_recog PRIVATE
     ${TORCH_LIBRARIES}
 )
 
+add_custom_command(TARGET handwriting_recog POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/artifacts/models
+            $<TARGET_FILE_DIR:handwriting_recog>/models
+    COMMENT "Copying MNIST models to target output directory"
+)
+
 if (WIN32)
     target_link_libraries(handwriting_recog PRIVATE
         mf

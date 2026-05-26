@@ -325,6 +325,13 @@ void MainWindow::loadRecognizerForSelection()
     const QString modelPath = resolveModelPath(modelKey);
     appendLog(QString("准备加载模型: key=%1, path=%2").arg(modelKey, modelPath));
 
+    if (modelPath.isEmpty()) {
+        setRecognitionEnabled(false);
+        resultLabel_->setText(QStringLiteral("识别结果：模型加载失败 - 未找到可用的 MNIST 模型文件"));
+        appendLog(QStringLiteral("模型加载失败: 未找到可用的 MNIST 模型文件"));
+        return;
+    }
+
     setRecognitionBusy(true);
     delete recognizer_;
     recognizer_ = nullptr;
@@ -537,7 +544,8 @@ void MainWindow::onAirTrackingUpdated(const QPointF& cursorPoint, const QSize& f
         airSmoothedPoint_ = canvasPointF;
         airSmoothedPointValid_ = true;
     } else {
-        const double alpha = 0.35;
+        const double movement = std::hypot(canvasPointF.x() - airSmoothedPoint_.x(), canvasPointF.y() - airSmoothedPoint_.y());
+        const double alpha = std::clamp(0.34 + movement / 220.0, 0.34, 0.68);
         airSmoothedPoint_ = QPointF(
             airSmoothedPoint_.x() * (1.0 - alpha) + canvasPointF.x() * alpha,
             airSmoothedPoint_.y() * (1.0 - alpha) + canvasPointF.y() * alpha);
@@ -547,6 +555,7 @@ void MainWindow::onAirTrackingUpdated(const QPointF& cursorPoint, const QSize& f
     const QPoint drawPointInt = drawPoint.toPoint();
 
     if (drawingActive) {
+        airStrokeReleasePending_ = false;
         if (!airStrokeActive_) {
             canvas_->beginStroke(drawPointInt);
             airStrokeActive_ = true;
@@ -577,7 +586,13 @@ void MainWindow::onAirTrackingUpdated(const QPointF& cursorPoint, const QSize& f
 
         lastAirPoint_ = drawPoint;
     } else if (airStrokeActive_) {
-        finalizeAirStroke();
+        if (!airStrokeReleasePending_) {
+            airStrokeReleasePending_ = true;
+            airStrokeReleaseTimer_.restart();
+        } else if (airStrokeReleaseTimer_.isValid() && airStrokeReleaseTimer_.elapsed() >= 120) {
+            finalizeAirStroke();
+            airStrokeReleasePending_ = false;
+        }
         lastAirPoint_ = drawPoint;
     } else {
         lastAirPoint_ = drawPoint;
@@ -589,6 +604,7 @@ void MainWindow::onAirTrackingLost()
     airSmoothedPointValid_ = false;
     trackerCursorValid_ = false;
     trackerDrawingActive_ = false;
+    airStrokeReleasePending_ = false;
     finalizeAirStroke();
 }
 
@@ -606,6 +622,7 @@ void MainWindow::stopAirWriting()
 {
     finalizeAirStroke();
     airSmoothedPointValid_ = false;
+    airStrokeReleasePending_ = false;
     if (airController_ != nullptr) {
         airController_->stop();
     }
@@ -633,6 +650,7 @@ void MainWindow::finalizeAirStroke()
         canvas_->endStroke();
         airStrokeActive_ = false;
     }
+    airStrokeReleasePending_ = false;
 }
 
 void MainWindow::appendLog(const QString& message)

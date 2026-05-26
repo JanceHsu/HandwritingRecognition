@@ -46,6 +46,15 @@ Python 进程只通过 stdout 输出轻量 JSON：
 
 Qt 根据 cursor 和 frame_size 把指尖轨迹映射到 Canvas，并继续沿用平滑与断笔逻辑。
 
+当前实现额外加入了两层稳定策略：
+
+- Python 端对食指指尖位置做基于手型尺度的限幅平滑，并要求连续若干帧才能从 TRACK 切换到 DRAW 或从 DRAW 切回 TRACK。
+- Python 端还改为结合整手掌心与各指 MCP/PIP/TIP 的几何关系判断“仅食指抬起”，减少相似颜色背景带来的误触发。
+- Python 端新增食指锁定状态机：当索引 8（食指指尖）与历史轨迹不一致时，短时间优先沿历史速度预测，不立即切换到异常点，避免在特定角度漂移到其他手指。
+- Python 端把“是否可书写”改成置信度滞回状态机：只要整手骨架、食指锁定和轨迹连续性仍然可信，就维持写入状态，不再依赖单帧二值姿态。
+- 对于单帧/双帧手部丢失，Python 会短时保活上一轨迹后再判定丢手，降低突发中断概率。
+- Qt 端在停笔时增加短暂缓冲，并提高 tracking/json 刷新频率，避免单帧误检直接把笔画切断，同时降低预览标记点延迟。
+
 ## 起笔 / 停笔逻辑
 
 手势逻辑参考 `reference/aircatch`：
@@ -57,7 +66,8 @@ Qt 侧行为：
 
 - `drawing_active=true` 且当前无笔画时: `beginStroke()` 起笔。
 - `drawing_active=true` 且已有笔画时: `appendStroke()` 连续绘制。
-- `drawing_active=false` 或手部丢失时: `endStroke()` 停笔。
+- `drawing_active=false` 时先短暂保留当前笔画，确认持续失手后再 `endStroke()` 停笔。
+- 手部丢失时立即结束当前笔画并重置稳定器。
 
 ## 关键文件
 

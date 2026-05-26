@@ -217,7 +217,7 @@ void AirWriteController::start()
     QStringList arguments = {
         script,
         QStringLiteral("--stdin-frames"),
-        QStringLiteral("--tracking-fps"), QStringLiteral("30"),
+        QStringLiteral("--tracking-fps"), QStringLiteral("45"),
         QStringLiteral("--detect-max-width"), QStringLiteral("512"),
     };
 

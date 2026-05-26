@@ -53,10 +53,10 @@ private:
     QByteArray stderrBuffer_;
     bool trackingActive_ = false;
     QElapsedTimer trackingEmitTimer_;
-    int trackingEmitIntervalMs_ = 50; // ms, ~20Hz default
+    int trackingEmitIntervalMs_ = 16; // ms, ~60Hz default
     QImage pendingFrame_;
     QElapsedTimer frameEmitTimer_;
-    int frameSubmitIntervalMs_ = 33; // ~30 FPS to Python
+    int frameSubmitIntervalMs_ = 20; // ~50 FPS to Python
     int frameJpegQuality_ = 70;
     int frameMaxWidth_ = 512;
 };
