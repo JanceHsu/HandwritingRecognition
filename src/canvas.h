@@ -11,6 +11,9 @@ public:
 
     QPixmap getImage() const;
     void clear();
+    void beginStroke(const QPoint& point);
+    void appendStroke(const QPoint& point);
+    void endStroke();
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -21,6 +24,7 @@ protected:
 
 private:
     void ensureCanvasSize(const QSize& size);
+    void drawPointAt(const QPoint& point);
     void drawLineTo(const QPoint& endPoint);
 
     QPixmap pixmap_;

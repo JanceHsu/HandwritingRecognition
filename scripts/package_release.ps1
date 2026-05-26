@@ -21,7 +21,7 @@ if ($env:LIBTORCH_DIR -and -not $PSBoundParameters.ContainsKey('LibtorchDir')) {
 }
 
 $releaseDir = Join-Path $BuildDir 'Release'
-$exePath = Join-Path $releaseDir 'digit_recog.exe'
+$exePath = Join-Path $releaseDir 'handwriting_recog.exe'
 
 if (-not (Test-Path $exePath)) {
     throw "Executable not found: $exePath"
@@ -74,12 +74,12 @@ if (-not (Test-Path $windeployqt)) {
 
 Push-Location $OutputDir
 try {
-    & $windeployqt --release --compiler-runtime .\digit_recog.exe
+    & $windeployqt --release --compiler-runtime .\handwriting_recog.exe
 } finally {
     Pop-Location
 }
 
-$launcherPath = Join-Path $OutputDir 'run_digit_recog.bat'
+$launcherPath = Join-Path $OutputDir 'run_handwriting_recog.bat'
 @"
 @echo off
 setlocal
@@ -87,7 +87,7 @@ set "PATH=$QtBin;$LibtorchDir\lib;%PATH%"
 if "%LIBTORCH_DEVICE%"=="" (
     set "LIBTORCH_DEVICE=auto"
 )
-start "" "%~dp0digit_recog.exe"
+start "" "%~dp0handwriting_recog.exe"
 "@ | Set-Content -Path $launcherPath -Encoding ASCII
 
 $libDir = Join-Path $LibtorchDir 'lib'

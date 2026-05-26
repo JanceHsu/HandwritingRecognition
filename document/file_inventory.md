@@ -12,7 +12,7 @@
 - `CMakeLists.txt`：CMake 构建脚本，MSVC/Qt + LibTorch 配置。
   - 保留理由：构建入口。
 
-- `run_digit_recog.bat`：一键本地运行脚本（会使用 `dist` 中的可执行并设置环境变量）。
+- `run_handwriting_recog.bat`：一键本地运行脚本（会使用 `dist` 中的可执行并设置环境变量）。
   - 保留理由：便捷运行。可按需修改。
 
 - `scripts/`：包含训练、打包、清理脚本。
@@ -33,7 +33,7 @@
 - `artifacts/`：训练脚本输出目录（应包含 `models/cpu` 与 `models/gpu` 子目录，各含 `mnist_model.pt` 与 `model.pth`）。
   - 保留理由：训练产物，必要用于打包与运行验证。
 
-- `dist/`：发布包输出目录（包含 `digit_recog.exe`、Qt/LibTorch 运行时库、`models/` 子目录）。
+- `dist/`：发布包输出目录（包含 `handwriting_recog.exe`、Qt/LibTorch 运行时库、`models/` 子目录）。
   - 保留理由：发布产物，可供直接分发/测试。
 
 ## 3. 生成/临时目录（推荐删除 | 可恢复）

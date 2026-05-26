@@ -12,7 +12,7 @@
 - CMake 3.30 或兼容版本
 - CUDA Toolkit 12.8
 - 与 CUDA 匹配的 LibTorch
-- Python 3.13
+- Python 3.13（使用系统安装，不创建新的虚拟环境）
 
 ### 1.2 推荐目录
 
@@ -35,6 +35,12 @@ py -3.13 --version
 ```powershell
 & "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin\nvcc.exe" --version
 ```
+
+### 1.4 隔空书写依赖
+
+- Python 追踪服务使用全局 Python 3.13，不需要也不建议在这个工作区创建新的虚拟环境。
+- 需要安装 `mediapipe` 和 `opencv-python`，并在第一次启动隔空书写时允许脚本自动下载 hand landmarker 模型。
+- 如果你只做鼠标画板识别和模型训练，这部分依赖不会影响 C++ 主程序构建。
 
 ## 2. 清理旧产物
 
@@ -91,7 +97,7 @@ py -3.13 scripts\train_mnist.py --epochs 50 --batch-size 64 --output-dir artifac
 
 1. 复制 Qt 可执行依赖。
 2. 复制 CPU/GPU 分类模型。
-3. 生成一键启动脚本 `run_digit_recog.bat`。
+3. 生成一键启动脚本 `run_handwriting_recog.bat`。
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File D:\Develop\Project\Qt\HandwritingRecognition\scripts\package_release.ps1 -LibtorchDir D:\Develop\libtorch
@@ -103,16 +109,23 @@ powershell -ExecutionPolicy Bypass -File D:\Develop\Project\Qt\HandwritingRecogn
 D:\Develop\Project\Qt\HandwritingRecognition\dist
 ```
 
+### 4.0 build 与 dist 的关系
+
+- `build/` 是开发构建目录，存放 CMake/MSBuild 生成的中间文件和 `handwriting_recog.exe`。
+- `dist/` 是发布目录，由 `scripts/package_release.ps1` 基于 `build/Release/handwriting_recog.exe` 重新整理得到。
+- 这也是为什么项目里会看到两个可执行文件：一个在 `build/Release/`，一个在 `dist/`。前者用于开发调试，后者用于分发和一键运行。
+- 如果只重新构建而不执行打包，`build/Release/handwriting_recog.exe` 会更新，但 `dist/` 会保持旧快照。
+
 ### 4.1 将构建产物整理成可单独运行的 exe 发布包
 
-本项目的“可单独运行”不是把程序强行压成真正的单文件 exe，而是把 `digit_recog.exe`、Qt 运行库、LibTorch DLL 和模型文件整理到同一发布目录，用户双击 exe 就能运行。实际打包时建议按下面的顺序处理：
+本项目的“可单独运行”不是把程序强行压成真正的单文件 exe，而是把 `handwriting_recog.exe`、Qt 运行库、LibTorch DLL 和模型文件整理到同一发布目录，用户双击 exe 就能运行。实际打包时建议按下面的顺序处理：
 
-1. 先完成 Release 构建，确保 `build\Release\digit_recog.exe` 已生成。
-2. 将 `digit_recog.exe` 复制到新的发布目录，例如 `dist\`。
+1. 先完成 Release 构建，确保 `build\Release\handwriting_recog.exe` 已生成。
+2. 将 `handwriting_recog.exe` 复制到新的发布目录，例如 `dist\`。
 3. 使用 `windeployqt --release --compiler-runtime` 复制 Qt 运行时依赖。
 4. 将当前使用的 LibTorch `lib\*.dll` 复制到发布目录，保证推理时能找到 Torch 运行库。
 5. 将模型文件按类别放入 `dist\models\cpu` 和 `dist\models\gpu`，每个目录至少包含 `mnist_model.pt` 和 `model.pth`。
-6. 生成一个 `run_digit_recog.bat` 或类似启动脚本，在启动前把 Qt 和 LibTorch 目录加入 `PATH`，这样用户无需手动配置环境变量。
+6. 生成一个 `run_handwriting_recog.bat` 或类似启动脚本，在启动前把 Qt 和 LibTorch 目录加入 `PATH`，这样用户无需手动配置环境变量。
 
 打包完成后，发布目录中的 exe 可以脱离开发环境直接启动；前提是它所在目录保留了上述依赖文件。若把 exe 单独拷走而不带 Qt/LibTorch DLL，程序将无法正常运行。
 
@@ -121,7 +134,7 @@ D:\Develop\Project\Qt\HandwritingRecognition\dist
 优先使用仓库根目录的一键启动脚本：
 
 ```powershell
-D:\Develop\Project\Qt\HandwritingRecognition\run_digit_recog.bat
+D:\Develop\Project\Qt\HandwritingRecognition\run_handwriting_recog.bat
 ```
 
 启动后检查以下内容：
@@ -143,12 +156,12 @@ D:\Develop\Project\Qt\HandwritingRecognition\run_digit_recog.bat
 
 发布时应保留：
 
-- `dist\digit_recog.exe`
+- `dist\handwriting_recog.exe`
 - `dist\models\cpu\mnist_model.pt`
 - `dist\models\cpu\model.pth`
 - `dist\models\gpu\mnist_model.pt`
 - `dist\models\gpu\model.pth`
-- `dist\run_digit_recog.bat`
+- `dist\run_handwriting_recog.bat`
 
 其他临时检查目录、根目录重复模型文件和日志文件不应再进入发布包。
 

@@ -27,7 +27,7 @@ call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliar
 随后配置和构建项目：
 
 ```bat
-cmake -S D:\Develop\Project\Qt\HandwritingRecognition -B D:\Develop\Project\Qt\HandwritingRecognition\build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="D:/Develop/Qt/6.11.1/msvc2022_64;D:/Develop/libtorch" -DTorch_DIR="D:/Develop/libtorch/share/cmake/Torch" -DDIGIT_RECOG_DEFAULT_DEVICE=cpu
+cmake -S D:\Develop\Project\Qt\HandwritingRecognition -B D:\Develop\Project\Qt\HandwritingRecognition\build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="D:/Develop/Qt/6.11.1/msvc2022_64;D:/Develop/libtorch" -DTorch_DIR="D:/Develop/libtorch/share/cmake/Torch" -DHANDWRITING_RECOG_DEFAULT_DEVICE=cpu
 cmake --build D:\Develop\Project\Qt\HandwritingRecognition\build --config Release
 ```
 
@@ -42,7 +42,7 @@ powershell -ExecutionPolicy Bypass -File D:\Develop\Project\Qt\HandwritingRecogn
 编译成功后，可执行文件位于：
 
 ```text
-D:\Develop\Project\Qt\HandwritingRecognition\build\Release\digit_recog.exe
+D:\Develop\Project\Qt\HandwritingRecognition\build\Release\handwriting_recog.exe
 ```
 
 ### 3. 训练模型
@@ -115,12 +115,12 @@ powershell -ExecutionPolicy Bypass -File D:\Develop\Project\Qt\HandwritingRecogn
 1. 配置 Qt 6.11.1 MSVC 和 LibTorch CUDA 路径。
 2. 训练 CPU 或 GPU 模型，输出到 `artifacts\models\cpu` 和 `artifacts\models\gpu`。
 3. 运行 `scripts\package_release.ps1` 生成 `dist`。
-4. 使用 `run_digit_recog.bat` 启动程序并确认模型切换与识别正常。
+4. 使用 `run_handwriting_recog.bat` 启动程序并确认模型切换与识别正常。
 
 目录中应包含：
 
-- `digit_recog.exe`
-- `run_digit_recog.bat`
+- `handwriting_recog.exe`
+- `run_handwriting_recog.bat`
 - `Qt6Core.dll`、`Qt6Gui.dll`、`Qt6Widgets.dll`
 - `torch_cpu.dll`、`torch.dll`、`c10.dll`
 - `mnist_model.pt`
@@ -129,10 +129,10 @@ powershell -ExecutionPolicy Bypass -File D:\Develop\Project\Qt\HandwritingRecogn
 
 ### 5. 一键运行（推荐唯一入口）
 
-推荐直接双击工程根目录中的 `run_digit_recog.bat`，这是唯一推荐入口。该脚本会在缺少发布包时自动调用打包流程：
+推荐直接双击工程根目录中的 `run_handwriting_recog.bat`，这是唯一推荐入口。该脚本会在缺少发布包时自动调用打包流程：
 
 ```text
-D:\Develop\Project\Qt\HandwritingRecognition\run_digit_recog.bat
+D:\Develop\Project\Qt\HandwritingRecognition\run_handwriting_recog.bat
 ```
 
 ### 6. 程序内日志查看
@@ -167,7 +167,7 @@ $env:LIBTORCH_DEVICE = "cpu"   # 可选值: cpu / cuda / auto
 ```powershell
 $env:LIBTORCH_DIR = "D:\Develop\libtorch-cuda"
 $env:LIBTORCH_DEVICE = "cuda"
-D:\Develop\Project\Qt\HandwritingRecognition\run_digit_recog.bat
+D:\Develop\Project\Qt\HandwritingRecognition\run_handwriting_recog.bat
 ```
 
 #### 7.2 点击识别仍然退出
@@ -185,7 +185,7 @@ D:\Develop\Project\Qt\HandwritingRecognition\run_digit_recog.bat
 1. 修改代码
 2. 重新编译
 3. 重新打包
-4. 双击 `run_digit_recog.bat`
+4. 双击 `run_handwriting_recog.bat`
 
 这样可以避免手工调整 PATH 引发的 DLL 混用问题。
 

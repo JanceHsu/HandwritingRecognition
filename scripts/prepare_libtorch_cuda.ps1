@@ -7,12 +7,12 @@ param(
 $ErrorActionPreference = 'Stop'
 
 if ($StopRunningApp) {
-    $procs = Get-Process -Name digit_recog -ErrorAction SilentlyContinue
+    $procs = Get-Process -Name handwriting_recog -ErrorAction SilentlyContinue
     if ($procs) {
         $procs | Stop-Process -Force
-        Write-Host "Stopped digit_recog process count:" $procs.Count
+        Write-Host "Stopped handwriting_recog process count:" $procs.Count
     } else {
-        Write-Host "No running digit_recog process."
+        Write-Host "No running handwriting_recog process."
     }
 }
 
@@ -34,7 +34,7 @@ Write-Host "ProjectDir: $ProjectDir"
 Write-Host "CudaLibtorchDir: $CudaLibtorchDir"
 Write-Host ""
 Write-Host "Next build command (MSVC):"
-Write-Host ('cmake -S {0} -B {0}\build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="D:/Develop/Qt/6.11.1/msvc2022_64;{1}" -DTorch_DIR="{1}/share/cmake/Torch" -DDIGIT_RECOG_DEFAULT_DEVICE=auto' -f $ProjectDir, $CudaLibtorchDir)
+Write-Host ('cmake -S {0} -B {0}\build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="D:/Develop/Qt/6.11.1/msvc2022_64;{1}" -DTorch_DIR="{1}/share/cmake/Torch" -DHANDWRITING_RECOG_DEFAULT_DEVICE=auto' -f $ProjectDir, $CudaLibtorchDir)
 Write-Host "cmake --build $ProjectDir\build --config Release"
 Write-Host ""
 Write-Host "Runtime tip: set LIBTORCH_DIR=$CudaLibtorchDir and LIBTORCH_DEVICE=cuda (or auto)."

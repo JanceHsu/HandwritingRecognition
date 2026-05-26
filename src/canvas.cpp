@@ -24,6 +24,28 @@ void Canvas::clear()
     update();
 }
 
+void Canvas::beginStroke(const QPoint& point)
+{
+    drawing_ = true;
+    lastPoint_ = point;
+    drawPointAt(point);
+}
+
+void Canvas::appendStroke(const QPoint& point)
+{
+    if (!drawing_) {
+        beginStroke(point);
+        return;
+    }
+
+    drawLineTo(point);
+}
+
+void Canvas::endStroke()
+{
+    drawing_ = false;
+}
+
 void Canvas::paintEvent(QPaintEvent*)
 {
     QPainter painter(this);
@@ -34,23 +56,22 @@ void Canvas::paintEvent(QPaintEvent*)
 void Canvas::mousePressEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::LeftButton) {
-        drawing_ = true;
-        lastPoint_ = event->pos();
+        beginStroke(event->pos());
     }
 }
 
 void Canvas::mouseMoveEvent(QMouseEvent* event)
 {
     if ((event->buttons() & Qt::LeftButton) && drawing_) {
-        drawLineTo(event->pos());
+        appendStroke(event->pos());
     }
 }
 
 void Canvas::mouseReleaseEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::LeftButton && drawing_) {
-        drawLineTo(event->pos());
-        drawing_ = false;
+        appendStroke(event->pos());
+        endStroke();
     }
 }
 
@@ -86,4 +107,13 @@ void Canvas::drawLineTo(const QPoint& endPoint)
     const int radius = 24;
     update(QRect(lastPoint_, endPoint).normalized().adjusted(-radius, -radius, radius, radius));
     lastPoint_ = endPoint;
+}
+
+void Canvas::drawPointAt(const QPoint& point)
+{
+    QPainter painter(&pixmap_);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setPen(QPen(Qt::black, 20, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter.drawPoint(point);
+    update(QRect(point, point).adjusted(-12, -12, 12, 12));
 }

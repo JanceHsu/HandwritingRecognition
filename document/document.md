@@ -248,25 +248,25 @@ cmake
 
 ```
 cmake_minimum_required(VERSION 3.14)
-project(DigitRecognition)
+project(HandwritingRecognition)
 set(CMAKE_CXX_STANDARD 14)
 
 find_package(Qt5 REQUIRED COMPONENTS Widgets)
 find_package(OpenCV REQUIRED)
 find_package(Torch REQUIRED)
 
-add_executable(digit_recog
+add_executable(handwriting_recog
     src/main.cpp
     src/mainwindow.cpp
     src/canvas.cpp
     src/recognizer.cpp
 )
 
-target_include_directories(digit_recog PRIVATE
+target_include_directories(handwriting_recog PRIVATE
     ${OpenCV_INCLUDE_DIRS}
     ${TORCH_INCLUDE_DIRS}
 )
-target_link_libraries(digit_recog
+target_link_libraries(handwriting_recog
     Qt5::Widgets
     ${OpenCV_LIBS}
     ${TORCH_LIBRARIES}

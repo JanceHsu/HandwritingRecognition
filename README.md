@@ -1,6 +1,6 @@
-# HandwritingRecognition
+# Handwriting Recognition
 
-Qt + LibTorch desktop handwriting recognition project.
+Handwriting Recognition desktop project built with Qt + LibTorch.
 
 Current status:
 - Python training script scaffolded in `scripts/train_mnist.py`
@@ -17,6 +17,7 @@ Current status:
 - `document/`: build and operation documentation.
 
 Detailed build flow: [document/build_workflow.md](document/build_workflow.md)
+Air-writing extension notes: [document/airwriting_extension.md](document/airwriting_extension.md)
 
 ## Build and Run on Windows (MSVC only)
 
@@ -30,7 +31,7 @@ Run the executable with the MSVC Qt runtime first on PATH:
 
 ```powershell
 $env:PATH = "D:\Develop\Qt\6.11.1\msvc2022_64\bin;D:\Develop\libtorch\lib;$env:PATH"
-D:\Develop\Project\Qt\HandwritingRecognition\build\Release\digit_recog.exe
+D:\Develop\Project\Qt\HandwritingRecognition\build\Release\handwriting_recog.exe
 ```
 
 Package a distributable folder:
@@ -39,7 +40,16 @@ Package a distributable folder:
 powershell -ExecutionPolicy Bypass -File D:\Develop\Project\Qt\HandwritingRecognition\scripts\package_release.ps1
 ```
 
-The packaged release folder is the practical standalone delivery format for this project. It is not a single-file binary; it is a self-contained directory with `digit_recog.exe`, Qt runtime DLLs, LibTorch DLLs, and the model files under `models/`. See [document/build_workflow.md](document/build_workflow.md) for the packaging order and required contents.
+The packaged release folder is the practical standalone delivery format for this project. It is not a single-file binary; it is a self-contained directory with `handwriting_recog.exe`, Qt runtime DLLs, LibTorch DLLs, and the model files under `models/`. See [document/build_workflow.md](document/build_workflow.md) for the packaging order and required contents.
+
+`build/` is the local development output, while `dist/` is the packaged snapshot used for distribution and one-click launch.
+
+Current air-writing runtime:
+
+- The tracker runs as a Python 3.13 process using OpenCV + MediaPipe Tasks.
+- The Qt app talks to `scripts/hand_tracker_service.py` through `QProcess` and JSON lines.
+- No Python virtual environment is required for this workspace.
+- The hand tracker model is downloaded automatically on first run if it is missing.
 
 Prepare switch to LibTorch 2.5.1 CUDA:
 
@@ -52,7 +62,7 @@ Runtime override example for CUDA package/build:
 ```powershell
 $env:LIBTORCH_DIR = "D:\Develop\libtorch-cuda"
 $env:LIBTORCH_DEVICE = "cuda"
-D:\Develop\Project\Qt\HandwritingRecognition\run_digit_recog.bat
+D:\Develop\Project\Qt\HandwritingRecognition\run_handwriting_recog.bat
 ```
 
 The log field `推理设备=cpu` means the current runtime is doing inference on CPU. It does not mean the model was trained on CPU; the training script already runs on CUDA when you pass `--device cuda` or use the default auto mode on a CUDA-capable machine.
@@ -70,7 +80,7 @@ py -3.13 scripts\train_mnist.py --epochs 50 --batch-size 256 --output-dir artifa
 One-click launch from Explorer:
 
 ```text
-D:\Develop\Project\Qt\HandwritingRecognition\run_digit_recog.bat
+D:\Develop\Project\Qt\HandwritingRecognition\run_handwriting_recog.bat
 ```
 
 Project cleanup (remove generated build/package/cache directories):

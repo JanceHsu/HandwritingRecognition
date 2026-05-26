@@ -18,7 +18,7 @@ C++ toolchain (recommended):
 
 CUDA / LibTorch notes:
 - For GPU training and CUDA inference, use a LibTorch CUDA build that matches your CUDA Toolkit (tested with CUDA 12.8 and LibTorch 2.5.x CUDA builds).
-- Ensure `LIBTORCH_DIR` points to the chosen LibTorch; package and `run_digit_recog.bat` will copy the matching DLLs into `dist`.
+- Ensure `LIBTORCH_DIR` points to the chosen LibTorch; package and `run_handwriting_recog.bat` will copy the matching DLLs into `dist`.
 
 Runtime configuration:
 - Default inference device: `auto` recommended (falls back to CPU if CUDA unavailable)

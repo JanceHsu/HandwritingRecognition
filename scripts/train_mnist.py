@@ -24,18 +24,29 @@ class NeuralNetwork(nn.Module):
             nn.Conv2d(1, 32, kernel_size=3, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
+            nn.Conv2d(32, 32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
             nn.MaxPool2d(2),
+            nn.Dropout2d(0.10),
 
             nn.Conv2d(32, 64, kernel_size=3, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
             nn.MaxPool2d(2),
+            nn.Dropout2d(0.20),
         )
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(64 * 7 * 7, 128),
+            nn.Linear(64 * 7 * 7, 256),
             nn.ReLU(),
             nn.Dropout(0.3),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Dropout(0.2),
             nn.Linear(128, 10),
         )
 
@@ -44,7 +55,7 @@ class NeuralNetwork(nn.Module):
         return self.classifier(x)
 
 
-def train(dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, device, scaler=None):
+def train(dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, device, scaler=None, scheduler=None):
     model.train()
     size = len(dataloader.dataset)
     for batch, (inputs, targets) in enumerate(dataloader):
@@ -68,6 +79,9 @@ def train(dataloader: DataLoader, model: nn.Module, loss_fn, optimizer, device, 
         else:
             loss.backward()
             optimizer.step()
+
+        if scheduler is not None:
+            scheduler.step()
 
         if batch % 100 == 0:
             current = batch * len(inputs)
@@ -99,15 +113,22 @@ def test(dataloader: DataLoader, model: nn.Module, loss_fn, device):
 def build_dataloaders(data_root: Path, batch_size: int, mirror_url: str):
     datasets.MNIST.mirrors = [mirror_url]
     train_transform = transforms.Compose([
+        transforms.RandomRotation(15),
         transforms.RandomAffine(
             degrees=10,
             translate=(0.10, 0.10),
             scale=(0.90, 1.10),
-            shear=5,
+            shear=8,
         ),
+        transforms.RandomPerspective(distortion_scale=0.15, p=0.25),
+        transforms.RandomApply([transforms.ColorJitter(brightness=0.15, contrast=0.15)], p=0.5),
         transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,)),
     ])
-    test_transform = transforms.ToTensor()
+    test_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,)),
+    ])
     mnist_train = datasets.MNIST(root=str(data_root), train=True, transform=train_transform, download=True)
     mnist_test = datasets.MNIST(root=str(data_root), train=False, transform=test_transform, download=True)
 
@@ -140,6 +161,12 @@ def main() -> None:
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
         torch.set_float32_matmul_precision("high")
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+
+    torch.manual_seed(42)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(42)
 
     # Resolve device: prefer explicit arg, then CUDA if available when 'auto' or None
     requested = (args.device or "auto").lower()
@@ -162,7 +189,15 @@ def main() -> None:
 
     if args.no_augment:
         datasets.MNIST.mirrors = [args.mirror_url]
-        plain_train = datasets.MNIST(root=str(args.data_root), train=True, transform=transforms.ToTensor(), download=True)
+        plain_train = datasets.MNIST(
+            root=str(args.data_root),
+            train=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,)),
+            ]),
+            download=True,
+        )
         train_loader = DataLoader(plain_train, batch_size=args.batch_size, shuffle=True)
 
     # Rebuild dataloaders with performance flags when using CUDA
@@ -193,13 +228,22 @@ def main() -> None:
     model = NeuralNetwork().to(device)
     if device.type == "cuda":
         model = model.to(memory_format=torch.channels_last)
-    loss_fn = nn.CrossEntropyLoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
+    loss_fn = nn.CrossEntropyLoss(label_smoothing=0.05)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=5e-4)
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        optimizer,
+        max_lr=args.lr,
+        epochs=args.epochs,
+        steps_per_epoch=max(1, len(train_loader)),
+        pct_start=0.15,
+        div_factor=10.0,
+        final_div_factor=100.0,
+    )
     scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda")
 
     for epoch in range(args.epochs):
         print(f"Epoch {epoch + 1}\n-------------")
-        train(train_loader, model, loss_fn, optimizer, device, scaler)
+        train(train_loader, model, loss_fn, optimizer, device, scaler, scheduler)
         accuracy = test(test_loader, model, loss_fn, device)
         print(f"epoch={epoch + 1}, accuracy={accuracy:.4f}")
 

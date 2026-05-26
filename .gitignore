@@ -22,3 +22,4 @@ test_log.md
 *.VC.opendb
 .agents/
 .vscode/
+reference/
