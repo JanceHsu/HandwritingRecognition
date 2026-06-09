@@ -31,11 +31,18 @@ class QImage;
 #include <string>
 #include <vector>
 
+struct PredictResult {
+    int digit = -1;
+    float confidence = 0.0f;
+};
+
 class DigitRecognizer {
 public:
     explicit DigitRecognizer(const std::string& modelPath);
     int predict(const cv::Mat& inputImage);
     int predict(const QImage& inputImage);
+    PredictResult predictWithConfidence(const cv::Mat& inputImage);
+    PredictResult predictWithConfidence(const QImage& inputImage);
     const std::string& deviceName() const;
     void warmUp();
 

@@ -44,7 +44,8 @@ $modelTargets = @(
 foreach ($modelTarget in $modelTargets) {
     $sourceDir = $modelTarget.Source
     if (-not (Test-Path $sourceDir)) {
-        throw "Model directory not found: $sourceDir"
+        Write-Warning "Model directory not found, skipping: $sourceDir"
+        continue
     }
 
     $destinationDir = Join-Path (Join-Path (Split-Path -Parent $exePath) 'models') $modelTarget.Kind
@@ -68,9 +69,10 @@ if (Test-Path $libDir) {
 $windeployqt = Join-Path $QtBin 'windeployqt.exe'
 if (Test-Path $windeployqt) {
     $targetLeaf = Split-Path -Leaf $exePath
+    $windeployqtFlag = if ($TargetConfig -eq 'debug') { '--debug' } else { '--release' }
     Push-Location (Split-Path -Parent $exePath)
     try {
-        & $windeployqt --release --compiler-runtime .\$targetLeaf
+        & $windeployqt $windeployqtFlag --compiler-runtime .\$targetLeaf
     } finally {
         Pop-Location
     }

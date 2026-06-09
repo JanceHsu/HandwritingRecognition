@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
+#include <filesystem>
 #include <stdexcept>
 #include <vector>
 
@@ -163,6 +164,10 @@ torch::Device DigitRecognizer::resolveDevice()
 DigitRecognizer::DigitRecognizer(const std::string& modelPath)
 {
     try {
+        if (!std::filesystem::exists(modelPath)) {
+            throw std::runtime_error("Model file not found: " + modelPath);
+        }
+
         device = resolveDevice();
         model = torch::jit::load(modelPath, device);
         model.eval();
@@ -328,4 +333,60 @@ int DigitRecognizer::predict(const QImage& inputImage)
 
     torch::Tensor logits = model.forward(inputs).toTensor().to(torch::kCPU);
     return static_cast<int>(logits.argmax(1).item<int64_t>());
+}
+
+PredictResult DigitRecognizer::predictWithConfidence(const cv::Mat& inputImage)
+{
+    std::vector<float> processed = preprocess(inputImage);
+    if (processed.size() != 28 * 28) {
+        throw std::runtime_error("Input image is empty");
+    }
+
+    auto input = torch::from_blob(
+        processed.data(),
+        {1, 1, 28, 28},
+        torch::TensorOptions().dtype(torch::kFloat32)
+    ).clone();
+
+    input = input.to(device);
+
+    torch::InferenceMode guard;
+    std::vector<torch::jit::IValue> inputs;
+    inputs.emplace_back(input);
+
+    torch::Tensor logits = model.forward(inputs).toTensor().to(torch::kCPU);
+    torch::Tensor probs = torch::softmax(logits, 1);
+
+    PredictResult result;
+    result.digit = static_cast<int>(probs.argmax(1).item<int64_t>());
+    result.confidence = probs[0][result.digit].item<float>();
+    return result;
+}
+
+PredictResult DigitRecognizer::predictWithConfidence(const QImage& inputImage)
+{
+    std::vector<float> processed = preprocessImage(inputImage);
+    if (processed.size() != 28 * 28) {
+        throw std::runtime_error("Input image is empty");
+    }
+
+    auto input = torch::from_blob(
+        processed.data(),
+        {1, 1, 28, 28},
+        torch::TensorOptions().dtype(torch::kFloat32)
+    ).clone();
+
+    input = input.to(device);
+
+    torch::InferenceMode guard;
+    std::vector<torch::jit::IValue> inputs;
+    inputs.emplace_back(input);
+
+    torch::Tensor logits = model.forward(inputs).toTensor().to(torch::kCPU);
+    torch::Tensor probs = torch::softmax(logits, 1);
+
+    PredictResult result;
+    result.digit = static_cast<int>(probs.argmax(1).item<int64_t>());
+    result.confidence = probs[0][result.digit].item<float>();
+    return result;
 }

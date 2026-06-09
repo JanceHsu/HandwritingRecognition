@@ -33,6 +33,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 
 #include <torch/cuda.h>
 
@@ -67,21 +68,32 @@ bool hasVisibleInk(const QImage& img)
 QString candidateModelPath(const QString& rootDir, const QString& modelKey)
 {
     const QString candidate = QDir(rootDir).filePath(modelKey + "/mnist_model.pt");
-    return QFileInfo::exists(candidate) ? QFileInfo(candidate).absoluteFilePath() : QString();
+    const std::string candidateStd = candidate.toStdString();
+    if (std::filesystem::exists(candidateStd)) {
+        return QFileInfo(candidate).absoluteFilePath();
+    }
+    return {};
 }
 
 QString resolveModelPathWithFallback(const QString& modelKey)
 {
     const QString appDir = QCoreApplication::applicationDirPath();
     const QStringList roots = {
+        // Source-tree paths (always reliable — no deploy script needed)
+        QDir(appDir).filePath("../../artifacts/models"),
+        QDir(appDir).filePath("../artifacts/models"),
+        QDir(appDir).filePath("../../../artifacts/models"),
+        QDir(appDir).filePath("../../dist/models"),
+        QDir(appDir).filePath("../dist/models"),
+        QDir(appDir).filePath("../../../dist/models"),
+        QDir(appDir).filePath("../../../../artifacts/models"),
+        QDir(appDir).filePath("../../../../../artifacts/models"),
+        QDir(appDir).filePath("../../../../../../artifacts/models"),
+        // Build-output paths (require deploy script to have run)
         QDir(appDir).filePath("models"),
         QDir(appDir).filePath("../models"),
         QDir(appDir).filePath("../../models"),
-        QDir(appDir).filePath("../../../artifacts/models"),
-        QDir(appDir).filePath("../artifacts/models"),
-        QDir(appDir).filePath("../../artifacts/models"),
-        QDir(appDir).filePath("../dist/models"),
-        QDir(appDir).filePath("../../dist/models"),
+        QDir(appDir).filePath("../../../models"),
     };
 
     const QString fallbackKey = (modelKey == "gpu") ? QStringLiteral("cpu") : QStringLiteral("gpu");
@@ -325,7 +337,7 @@ void MainWindow::loadRecognizerForSelection()
 {
     const QString modelKey = selectedModelKey();
     const QString modelPath = resolveModelPath(modelKey);
-    appendLog(QString("准备加载模型。参数: key = %1, path = %2").arg(modelKey, modelPath));
+    appendLog(QString("准备加载模型。参数: key = %1, path = %2, appDir = %3").arg(modelKey, modelPath, QCoreApplication::applicationDirPath()));
 
     if (modelPath.isEmpty()) {
         setRecognitionEnabled(false);
@@ -693,9 +705,12 @@ void MainWindow::onRecognize()
 
     try {
         appendLog(QString("开始识别。图像尺寸：%1×%2").arg(image.width()).arg(image.height()));
-        const int digit = recognizer_->predict(image);
-        resultLabel_->setText(QString("识别结果：%1").arg(digit));
-        appendLog(QString("识别完成。结果：%1").arg(digit));
+        const PredictResult result = recognizer_->predictWithConfidence(image);
+        const float confidencePercent = result.confidence * 100.0f;
+        resultLabel_->setText(QString("识别结果：%1（可信度：%2%）")
+            .arg(result.digit)
+            .arg(confidencePercent, 0, 'f', 1));
+        appendLog(QString("识别完成。结果：%1，可信度：%2%").arg(result.digit).arg(confidencePercent, 0, 'f', 1));
     } catch (const std::exception& error) {
         QMessageBox::critical(this, "识别失败", error.what());
         appendLog(QString("识别异常: %1").arg(error.what()));
