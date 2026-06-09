@@ -216,7 +216,7 @@ def ensure_model_available() -> Path:
     if tmp_path.exists():
         tmp_path.unlink()
 
-    emit({"type": "status", "level": "info", "message": "Downloading hand landmarker model..."})
+    emit({"type": "status", "level": "info", "message": "正在下载 Hand Landmarker 模型。"})
     urlretrieve(MODEL_URL, tmp_path)
     tmp_path.replace(MODEL_PATH)
     return MODEL_PATH
@@ -463,13 +463,13 @@ def main() -> int:
         capture, opened_by = open_camera(args.camera_name, args.camera_index)
         if not capture.isOpened():
             hint = f" (name={args.camera_name})" if args.camera_name else ""
-            emit({"type": "status", "level": "error", "message": f"Failed to open camera index {args.camera_index}{hint}"})
+            emit({"type": "status", "level": "error", "message": f"打开摄像头 INDEX = {args.camera_index}{hint} 失败。"})
             return
 
         capture.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
         capture.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
         capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        emit({"type": "status", "level": "info", "message": f"Frame source ready ({opened_by})"})
+        emit({"type": "status", "level": "info", "message": f"帧源准备就绪 ({opened_by})"})
 
         try:
             while not stop_event.is_set():
@@ -490,7 +490,7 @@ def main() -> int:
 
     def capture_worker_stdin() -> None:
         stream = sys.stdin.buffer
-        emit({"type": "status", "level": "info", "message": "Waiting for Qt frame stream"})
+        emit({"type": "status", "level": "info", "message": "正在等待 Qt 帧流……"})
         try:
             while not stop_event.is_set():
                 header = read_exact(stream, 4)
@@ -512,7 +512,7 @@ def main() -> int:
                     latest_capture_frame["seq"] += 1
                     latest_capture_frame["timestamp_ms"] = int(time.perf_counter() * 1000)
         except Exception as exc:
-            emit({"type": "status", "level": "error", "message": f"stdin frame stream error: {exc}"})
+            emit({"type": "status", "level": "error", "message": f"标准输入帧流错误: {exc}"})
 
     def detection_worker() -> None:
         while not stop_event.is_set():
@@ -559,7 +559,7 @@ def main() -> int:
     last_cursor: list[int] | None = None
     last_seen_capture_seq = 0
 
-    emit({"type": "status", "level": "info", "message": "Hand tracker started"})
+    emit({"type": "status", "level": "info", "message": "手部跟踪已启动。"})
 
     try:
         while True:
@@ -571,7 +571,7 @@ def main() -> int:
             if frame is None:
                 lost_frames += 1
                 if lost_frames == 1:
-                    emit({"type": "status", "level": "warn", "message": "Frame unavailable"})
+                    emit({"type": "status", "level": "warn", "message": "帧不可用。"})
                 time.sleep(0.01)
                 continue
 
@@ -611,7 +611,7 @@ def main() -> int:
                 worker_error = detection_results.get("last_error")
                 if worker_error is not None:
                     if now - last_detect_error_at >= 1.0:
-                        emit({"type": "status", "level": "warn", "message": f"MediaPipe error: {worker_error}"})
+                        emit({"type": "status", "level": "warn", "message": f"MediaPipe 错误: {worker_error}"})
                         last_detect_error_at = now
                     detection_results["last_error"] = None
 
@@ -672,11 +672,11 @@ def main() -> int:
                 emit({
                     "type": "status",
                     "level": "info",
-                    "message": f"detector: processed={stats['processed_frames']} dropped={stats['dropped_frames']} latency={stats['last_latency_ms']:.1f}ms",
+                    "message": f"帧流处理监测: 已处理 {stats['processed_frames']} 帧，丢弃 {stats['dropped_frames']} 帧，延迟 {stats['last_latency_ms']:.1f} ms。",
                 })
 
     except KeyboardInterrupt:
-        emit({"type": "status", "level": "info", "message": "Hand tracker stopped"})
+        emit({"type": "status", "level": "info", "message": "手部跟踪已停止。"})
     finally:
         stop_event.set()
         if not args.stdin_frames:

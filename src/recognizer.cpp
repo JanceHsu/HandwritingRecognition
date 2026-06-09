@@ -2,6 +2,7 @@
 
 #include <QImage>
 #include <QPainter>
+#include <QByteArray>
 
 #include <opencv2/imgproc.hpp>
 #include <torch/cuda.h>
@@ -16,6 +17,23 @@ namespace {
 
 constexpr float kMnistMean = 0.1307f;
 constexpr float kMnistStd = 0.3081f;
+
+#define HANDWRITING_RECOG_STRINGIFY_IMPL(x) #x
+#define HANDWRITING_RECOG_STRINGIFY(x) HANDWRITING_RECOG_STRINGIFY_IMPL(x)
+
+std::string normalizeMacroString(const char* value)
+{
+    if (value == nullptr) {
+        return {};
+    }
+
+    std::string normalized(value);
+    if (normalized.size() >= 2 && normalized.front() == '"' && normalized.back() == '"') {
+        normalized = normalized.substr(1, normalized.size() - 2);
+    }
+
+    return normalized;
+}
 
 std::vector<float> normalizeToMnist(const QImage& grayImage)
 {
@@ -96,17 +114,20 @@ std::string normalizeDeviceName(std::string value)
 
 std::string requestedDeviceName()
 {
-    const char* envDevice = std::getenv("LIBTORCH_DEVICE");
-    if (envDevice != nullptr && envDevice[0] != '\0') {
-        return normalizeDeviceName(std::string(envDevice));
+    const QByteArray envDevice = qgetenv("LIBTORCH_DEVICE");
+    if (!envDevice.isEmpty()) {
+        return normalizeDeviceName(envDevice.toStdString());
     }
 
 #ifdef HANDWRITING_RECOG_DEFAULT_DEVICE
-    return normalizeDeviceName(std::string(HANDWRITING_RECOG_DEFAULT_DEVICE));
+    return normalizeDeviceName(normalizeMacroString(HANDWRITING_RECOG_STRINGIFY(HANDWRITING_RECOG_DEFAULT_DEVICE)));
 #else
     return "cpu";
 #endif
 }
+
+#undef HANDWRITING_RECOG_STRINGIFY
+#undef HANDWRITING_RECOG_STRINGIFY_IMPL
 
 } // namespace
 

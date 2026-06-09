@@ -23,3 +23,7 @@ test_log.md
 .agents/
 .vscode/
 reference/
+report/
+node_modules/
+scripts/*.js
+document/qtwarning.md

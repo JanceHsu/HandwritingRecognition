@@ -77,6 +77,7 @@ QString resolveModelPathWithFallback(const QString& modelKey)
         QDir(appDir).filePath("models"),
         QDir(appDir).filePath("../models"),
         QDir(appDir).filePath("../../models"),
+        QDir(appDir).filePath("../../../artifacts/models"),
         QDir(appDir).filePath("../artifacts/models"),
         QDir(appDir).filePath("../../artifacts/models"),
         QDir(appDir).filePath("../dist/models"),
@@ -110,10 +111,10 @@ MainWindow::MainWindow(QWidget* parent)
     airController_ = new AirWriteController(this);
     buildUi();
     bindEvents();
-    appendLog("Application started");
+    appendLog("应用已启动。");
 
-    appendLog(QString("CUDA available: %1").arg(torch::cuda::is_available() ? "true" : "false"));
-    appendLog(QString("LIBTORCH_DEVICE=%1").arg(qEnvironmentVariable("LIBTORCH_DEVICE", "<unset>")));
+    appendLog(QString("CUDA 可用性检测: %1").arg(torch::cuda::is_available() ? "true" : "false"));
+    appendLog(QString("LIBTORCH_DEVICE 识别结果: %1").arg(qEnvironmentVariable("LIBTORCH_DEVICE", "<unset>")));
 
     connect(airController_, &AirWriteController::trackingUpdated, this, &MainWindow::onAirTrackingUpdated);
     connect(airController_, &AirWriteController::trackingLost, this, &MainWindow::onAirTrackingLost);
@@ -136,8 +137,9 @@ void MainWindow::buildUi()
 
     auto* centralWidget = new QWidget(this);
     centralWidget->setStyleSheet(
-        "QWidget { background: #f5f1e8; }"
+        "QWidget { background: #F1F3F9; }"
         "QFrame#card { background: white; border-radius: 18px; }"
+        "QLabel { background: #FFFFFF; }"
         "QLabel#title { font-size: 24px; font-weight: 700; color: #1f1f1f; }"
         "QLabel#result { font-size: 22px; font-weight: 600; color: #212121; }"
         "QPushButton { padding: 10px 20px; border-radius: 10px; font-size: 15px; }"
@@ -226,15 +228,15 @@ void MainWindow::buildUi()
         modelComboBox_->setCurrentIndex(0);
     }
 
-    auto* airHintLabel = new QLabel("Python + OpenCV + MediaPipe 整手关键点追踪；食指指尖用于落笔，中指抬起时暂停绘制。", sideCard);
+    auto* airHintLabel = new QLabel("隔空手势识别：食指指尖用于落笔，中指抬起时暂停绘制", sideCard);
     airHintLabel->setWordWrap(true);
     airHintLabel->setStyleSheet("color: #5f6368; font-size: 13px;");
 
     mirrorPreviewCheckBox_ = new QCheckBox("镜像翻转摄像头画面", sideCard);
     mirrorPreviewCheckBox_->setChecked(false);
-    mirrorPreviewCheckBox_->setStyleSheet("font-size: 13px; color: #202124;");
-
-    auto* hintLabel = new QLabel("请在画布上书写 0 到 9 的数字，然后点击“识别”。", sideCard);
+    mirrorPreviewCheckBox_->setStyleSheet("font-size: 13px; color: #202124; background: #FFFFFF;");
+    
+    auto* hintLabel = new QLabel("请在画布上书写 0 到 9 的数字", sideCard);
     hintLabel->setWordWrap(true);
     hintLabel->setStyleSheet("color: #5f6368; font-size: 14px;");
 
@@ -323,12 +325,12 @@ void MainWindow::loadRecognizerForSelection()
 {
     const QString modelKey = selectedModelKey();
     const QString modelPath = resolveModelPath(modelKey);
-    appendLog(QString("准备加载模型: key=%1, path=%2").arg(modelKey, modelPath));
+    appendLog(QString("准备加载模型。参数: key = %1, path = %2").arg(modelKey, modelPath));
 
     if (modelPath.isEmpty()) {
         setRecognitionEnabled(false);
-        resultLabel_->setText(QStringLiteral("识别结果：模型加载失败 - 未找到可用的 MNIST 模型文件"));
-        appendLog(QStringLiteral("模型加载失败: 未找到可用的 MNIST 模型文件"));
+        resultLabel_->setText(QStringLiteral("识别结果：模型加载失败。"));
+        appendLog(QStringLiteral("模型加载失败: 未找到可用的 MNIST 模型文件。"));
         return;
     }
 
@@ -340,17 +342,17 @@ void MainWindow::loadRecognizerForSelection()
         recognizer_ = new DigitRecognizer(modelPath.toStdString());
         try {
             recognizer_->warmUp();
-            appendLog("模型预热完成");
+            appendLog("模型预热完成。");
         } catch (const std::exception& warmupError) {
             appendLog(QString("模型预热失败: %1").arg(warmupError.what()));
         }
         setRecognitionEnabled(true);
         resultLabel_->setText("识别结果：");
-        appendLog(QString("模型加载成功: %1, 推理设备=%2").arg(modelPath, QString::fromStdString(recognizer_->deviceName())));
+        appendLog(QString("模型加载成功。参数: path = %1, device = %2").arg(modelPath, QString::fromStdString(recognizer_->deviceName())));
     } catch (const std::exception& error) {
         recognizer_ = nullptr;
         setRecognitionEnabled(false);
-        resultLabel_->setText(QString("识别结果：模型加载失败 - %1").arg(error.what()));
+        resultLabel_->setText(QString("模型加载失败！").arg(error.what()));
         appendLog(QString("模型加载失败: %1").arg(error.what()));
     }
 
@@ -372,7 +374,7 @@ void MainWindow::onAirModeToggled(bool checked)
 
     if (checked) {
         if (startCameraPreview() && startAirWriting()) {
-            appendLog("隔空书写已开启");
+            appendLog("隔空书写已开启。");
         } else {
             airWritingEnabled_ = false;
             if (airModeButton_ != nullptr) {
@@ -383,12 +385,12 @@ void MainWindow::onAirModeToggled(bool checked)
             }
             stopAirWriting();
             stopCameraPreview();
-            appendLog("隔空书写启动失败");
+            appendLog("隔空书写启动失败。");
         }
     } else {
         stopAirWriting();
         stopCameraPreview();
-        appendLog("隔空书写已关闭");
+        appendLog("隔空书写已关闭。");
     }
 }
 
@@ -417,14 +419,14 @@ void MainWindow::onCameraSelectionChanged(int index)
         }
         airWritingEnabled_ = false;
         const QString selectedName = cameraComboBox_ != nullptr ? cameraComboBox_->itemText(index) : QString::number(cameraIndex);
-        appendLog(QString("摄像头已切换到 %1，需要重新开启隔空书写").arg(selectedName));
+        appendLog(QString("摄像头已切换到 %1 ，需要重新开启隔空书写。").arg(selectedName));
     }
 }
 
 void MainWindow::onPreviewMirrorToggled(bool checked)
 {
     mirrorCameraPreview_ = checked;
-    appendLog(checked ? QStringLiteral("摄像头画面: 镜像") : QStringLiteral("摄像头画面: 原始"));
+    appendLog(checked ? QStringLiteral("摄像头画面: 镜像。") : QStringLiteral("摄像头画面: 原始。"));
 }
 
 bool MainWindow::startCameraPreview()
@@ -433,7 +435,7 @@ bool MainWindow::startCameraPreview()
 
     const QList<QCameraDevice> cameras = QMediaDevices::videoInputs();
     if (cameras.isEmpty()) {
-        appendLog(QStringLiteral("未检测到可用摄像头"));
+        appendLog(QStringLiteral("未检测到可用摄像头。"));
         return false;
     }
 
@@ -667,19 +669,19 @@ void MainWindow::onRecognize()
 {
     if (recognizer_ == nullptr) {
         QMessageBox::warning(this, "提示", "模型尚未加载，无法识别。");
-        appendLog("点击识别: 模型未加载");
+        appendLog("点击识别: 模型未加载。");
         return;
     }
 
     if (recognitionBusy_) {
-        appendLog("点击识别: 正在识别中，已忽略重复点击");
+        appendLog("点击识别: 正在识别中，已忽略重复点击。");
         return;
     }
 
     const QImage image = canvas_->getImage().toImage().convertToFormat(QImage::Format_Grayscale8);
     if (image.isNull() || !hasVisibleInk(image)) {
         QMessageBox::information(this, "提示", "请先在画板上书写数字。");
-        appendLog("点击识别: 画板为空");
+        appendLog("点击识别: 画板为空。");
         return;
     }
 
@@ -690,10 +692,10 @@ void MainWindow::onRecognize()
     } busyReset{this};
 
     try {
-        appendLog(QString("开始识别, 图像尺寸=%1x%2").arg(image.width()).arg(image.height()));
+        appendLog(QString("开始识别。图像尺寸：%1×%2").arg(image.width()).arg(image.height()));
         const int digit = recognizer_->predict(image);
         resultLabel_->setText(QString("识别结果：%1").arg(digit));
-        appendLog(QString("识别完成, 结果=%1").arg(digit));
+        appendLog(QString("识别完成。结果：%1").arg(digit));
     } catch (const std::exception& error) {
         QMessageBox::critical(this, "识别失败", error.what());
         appendLog(QString("识别异常: %1").arg(error.what()));
@@ -707,7 +709,7 @@ void MainWindow::onClear()
 {
     canvas_->clear();
     resultLabel_->setText("识别结果：");
-    appendLog("清空画板");
+    appendLog("清空画板。");
 }
 
 void MainWindow::refreshCameraList()
@@ -731,11 +733,11 @@ void MainWindow::refreshCameraList()
         const int selectedUiIndex = std::clamp(selectedCamera, 0, cameraComboBox_->count() - 1);
         cameraComboBox_->setCurrentIndex(selectedUiIndex);
         airController_->setCameraSelection(cameraComboBox_->itemData(selectedUiIndex).toInt(), cameraComboBox_->itemText(selectedUiIndex));
-        appendLog(QString("检测到 %1 个摄像头").arg(cameras.size()));
+        appendLog(QString("检测到 %1 个摄像头。").arg(cameras.size()));
     } else {
-        cameraComboBox_->addItem("未检测到摄像头");
+        cameraComboBox_->addItem("未检测到摄像头。");
         cameraComboBox_->setEnabled(false);
-        appendLog(QStringLiteral("未检测到可用摄像头"));
+        appendLog(QStringLiteral("未检测到可用摄像头。"));
     }
 
     cameraComboBox_->blockSignals(false);

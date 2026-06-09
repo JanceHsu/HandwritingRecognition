@@ -27,6 +27,10 @@ Configure and build with MSVC 2022 and the Qt 6.11.1 MSVC toolchain:
 cmd /c "call \"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat\" && cmake -S D:\Develop\Project\Qt\HandwritingRecognition -B D:\Develop\Project\Qt\HandwritingRecognition\build -G \"Visual Studio 17 2022\" -A x64 -DCMAKE_PREFIX_PATH=\"D:/Develop/Qt/6.11.1/msvc2022_64;D:/Develop/libtorch\" -DTorch_DIR=\"D:/Develop/libtorch/share/cmake/Torch\" && cmake --build D:\Develop\Project\Qt\HandwritingRecognition\build --config Release"
 ```
 
+Qt Creator can open the repository directly as a CMake project. Use [CMakePresets.json](CMakePresets.json) and select the `qtcreator-msvc2022-release` configure preset when importing the folder.
+
+If you want the simplest import path in Qt Creator, open [HandwritingRecognition.pro](HandwritingRecognition.pro) instead of the CMake file.
+
 Run the executable with the MSVC Qt runtime first on PATH:
 
 ```powershell
