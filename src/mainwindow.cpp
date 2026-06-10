@@ -65,9 +65,9 @@ bool hasVisibleInk(const QImage& img)
     return inkPixels >= 20;
 }
 
-QString candidateModelPath(const QString& rootDir, const QString& modelKey)
+QString candidateModelPath(const QString& rootDir)
 {
-    const QString candidate = QDir(rootDir).filePath(modelKey + "/mnist_model.pt");
+    const QString candidate = QDir(rootDir).filePath("mnist_model.pt");
     const std::string candidateStd = candidate.toStdString();
     if (std::filesystem::exists(candidateStd)) {
         return QFileInfo(candidate).absoluteFilePath();
@@ -75,7 +75,7 @@ QString candidateModelPath(const QString& rootDir, const QString& modelKey)
     return {};
 }
 
-QString resolveModelPathWithFallback(const QString& modelKey)
+QString resolveModelPathWithFallback()
 {
     const QString appDir = QCoreApplication::applicationDirPath();
     const QStringList roots = {
@@ -96,23 +96,14 @@ QString resolveModelPathWithFallback(const QString& modelKey)
         QDir(appDir).filePath("../../../models"),
     };
 
-    const QString fallbackKey = (modelKey == "gpu") ? QStringLiteral("cpu") : QStringLiteral("gpu");
-
     for (const QString& root : roots) {
-        const QString candidate = candidateModelPath(root, modelKey);
+        const QString candidate = candidateModelPath(root);
         if (!candidate.isEmpty()) {
             return candidate;
         }
     }
 
-    for (const QString& root : roots) {
-        const QString candidate = candidateModelPath(root, fallbackKey);
-        if (!candidate.isEmpty()) {
-            return candidate;
-        }
-    }
-
-    return candidateModelPath(QDir(appDir).filePath("models"), modelKey);
+    return candidateModelPath(QDir(appDir).filePath("models"));
 }
 
 } // namespace
@@ -125,15 +116,15 @@ MainWindow::MainWindow(QWidget* parent)
     bindEvents();
     appendLog("应用已启动。");
 
-    appendLog(QString("CUDA 可用性检测: %1").arg(torch::cuda::is_available() ? "true" : "false"));
-    appendLog(QString("LIBTORCH_DEVICE 识别结果: %1").arg(qEnvironmentVariable("LIBTORCH_DEVICE", "<unset>")));
+    cudaAvailable_ = torch::cuda::is_available();
+    appendLog(QString("CUDA 可用性检测: %1").arg(cudaAvailable_ ? "true" : "false"));
 
     connect(airController_, &AirWriteController::trackingUpdated, this, &MainWindow::onAirTrackingUpdated);
     connect(airController_, &AirWriteController::trackingLost, this, &MainWindow::onAirTrackingLost);
     connect(airController_, &AirWriteController::statusMessage, this, &MainWindow::appendLog);
 
     refreshCameraList();
-    loadRecognizerForSelection();
+    loadRecognizer();
 }
 
 MainWindow::~MainWindow()
@@ -227,18 +218,18 @@ void MainWindow::buildUi()
     resultLabel_->setObjectName("result");
     resultLabel_->setWordWrap(true);
 
-    modelLabel_ = new QLabel("模型选择", sideCard);
-    modelLabel_->setStyleSheet("font-size: 15px; font-weight: 600; color: #202124;");
+    confidenceLabel_ = new QLabel("可信度：--", sideCard);
+    confidenceLabel_->setObjectName("result");
+    confidenceLabel_->setWordWrap(true);
+    confidenceLabel_->setStyleSheet("font-size: 18px; font-weight: 600; color: #5f6368;");
 
-    modelComboBox_ = new QComboBox(sideCard);
-    modelComboBox_->addItem("GPU 模型（推荐）", "gpu");
-    modelComboBox_->addItem("CPU 模型", "cpu");
-    if (!torch::cuda::is_available()) {
-        modelComboBox_->removeItem(0);
-        modelComboBox_->setCurrentIndex(0);
-    } else {
-        modelComboBox_->setCurrentIndex(0);
+    cudaCheckBox_ = new QCheckBox("使用 CUDA 进行推理", sideCard);
+    cudaCheckBox_->setChecked(false);
+    cudaCheckBox_->setEnabled(cudaAvailable_);
+    if (!cudaAvailable_) {
+        cudaCheckBox_->setToolTip("未检测到可用的 CUDA 设备");
     }
+    cudaCheckBox_->setStyleSheet("font-size: 13px; color: #202124; background: #FFFFFF;");
 
     auto* airHintLabel = new QLabel("隔空手势识别：食指指尖用于落笔，中指抬起时暂停绘制", sideCard);
     airHintLabel->setWordWrap(true);
@@ -270,10 +261,10 @@ void MainWindow::buildUi()
     );
 
     sideLayout->addWidget(resultLabel_);
+    sideLayout->addWidget(confidenceLabel_);
     sideLayout->addWidget(airHintLabel);
     sideLayout->addWidget(mirrorPreviewCheckBox_);
-    sideLayout->addWidget(modelLabel_);
-    sideLayout->addWidget(modelComboBox_);
+    sideLayout->addWidget(cudaCheckBox_);
     sideLayout->addWidget(hintLabel);
     sideLayout->addStretch(1);
     sideLayout->addWidget(recognizeButton_);
@@ -302,7 +293,7 @@ void MainWindow::bindEvents()
     connect(mirrorPreviewCheckBox_, &QCheckBox::toggled, this, &MainWindow::onPreviewMirrorToggled);
     connect(recognizeButton_, &QPushButton::clicked, this, &MainWindow::onRecognize);
     connect(clearButton_, &QPushButton::clicked, this, &MainWindow::onClear);
-    connect(modelComboBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onModelSelectionChanged);
+    connect(cudaCheckBox_, &QCheckBox::toggled, this, &MainWindow::onCudaToggled);
 }
 
 void MainWindow::setRecognitionEnabled(bool enabled)
@@ -315,33 +306,27 @@ void MainWindow::setRecognitionBusy(bool busy)
     recognitionBusy_ = busy;
     recognizeButton_->setEnabled(!busy && recognizer_ != nullptr);
     clearButton_->setEnabled(!busy);
-    if (modelComboBox_ != nullptr) {
-        modelComboBox_->setEnabled(!busy);
+    if (cudaCheckBox_ != nullptr) {
+        cudaCheckBox_->setEnabled(!busy && cudaAvailable_);
     }
 }
 
-QString MainWindow::selectedModelKey() const
+QString MainWindow::resolveModelPath() const
 {
-    if (modelComboBox_ == nullptr) {
-        return "cpu";
-    }
-    return modelComboBox_->currentData().toString();
+    return resolveModelPathWithFallback();
 }
 
-QString MainWindow::resolveModelPath(const QString& modelKey) const
+void MainWindow::loadRecognizer()
 {
-    return resolveModelPathWithFallback(modelKey);
-}
-
-void MainWindow::loadRecognizerForSelection()
-{
-    const QString modelKey = selectedModelKey();
-    const QString modelPath = resolveModelPath(modelKey);
-    appendLog(QString("准备加载模型。参数: key = %1, path = %2, appDir = %3").arg(modelKey, modelPath, QCoreApplication::applicationDirPath()));
+    const bool useCuda = cudaCheckBox_ != nullptr && cudaCheckBox_->isChecked();
+    const QString modelPath = resolveModelPath();
+    appendLog(QString("准备加载模型。参数: useCuda = %1, path = %2, appDir = %3")
+        .arg(useCuda ? "true" : "false", modelPath, QCoreApplication::applicationDirPath()));
 
     if (modelPath.isEmpty()) {
         setRecognitionEnabled(false);
         resultLabel_->setText(QStringLiteral("识别结果：模型加载失败。"));
+        confidenceLabel_->setText(QStringLiteral("可信度：--"));
         appendLog(QStringLiteral("模型加载失败: 未找到可用的 MNIST 模型文件。"));
         return;
     }
@@ -351,7 +336,7 @@ void MainWindow::loadRecognizerForSelection()
     recognizer_ = nullptr;
 
     try {
-        recognizer_ = new DigitRecognizer(modelPath.toStdString());
+        recognizer_ = new DigitRecognizer(modelPath.toStdString(), useCuda);
         try {
             recognizer_->warmUp();
             appendLog("模型预热完成。");
@@ -364,16 +349,28 @@ void MainWindow::loadRecognizerForSelection()
     } catch (const std::exception& error) {
         recognizer_ = nullptr;
         setRecognitionEnabled(false);
-        resultLabel_->setText(QString("模型加载失败！").arg(error.what()));
+        resultLabel_->setText(QStringLiteral("识别结果：模型加载失败。"));
+        confidenceLabel_->setText(QStringLiteral("可信度：--"));
         appendLog(QString("模型加载失败: %1").arg(error.what()));
     }
 
     setRecognitionBusy(false);
 }
 
-void MainWindow::onModelSelectionChanged(int)
+void MainWindow::onCudaToggled(bool checked)
 {
-    loadRecognizerForSelection();
+    if (checked && !cudaAvailable_) {
+        appendLog("CUDA 不可用，无法切换到 CUDA 推理。");
+        if (cudaCheckBox_ != nullptr) {
+            cudaCheckBox_->blockSignals(true);
+            cudaCheckBox_->setChecked(false);
+            cudaCheckBox_->blockSignals(false);
+        }
+        return;
+    }
+
+    appendLog(QString("推理设备切换: %1").arg(checked ? "CUDA" : "CPU"));
+    loadRecognizer();
 }
 
 void MainWindow::onAirModeToggled(bool checked)
@@ -707,10 +704,9 @@ void MainWindow::onRecognize()
         appendLog(QString("开始识别。图像尺寸：%1×%2").arg(image.width()).arg(image.height()));
         const PredictResult result = recognizer_->predictWithConfidence(image);
         const float confidencePercent = result.confidence * 100.0f;
-        resultLabel_->setText(QString("识别结果：%1（可信度：%2%）")
-            .arg(result.digit)
-            .arg(confidencePercent, 0, 'f', 1));
-        appendLog(QString("识别完成。结果：%1，可信度：%2%").arg(result.digit).arg(confidencePercent, 0, 'f', 1));
+        resultLabel_->setText(QString("识别结果：%1").arg(result.digit));
+        confidenceLabel_->setText(QString("可信度：%1%").arg(confidencePercent, 0, 'f', 2));
+        appendLog(QString("识别完成。结果：%1，可信度：%2%").arg(result.digit).arg(confidencePercent, 0, 'f', 2));
     } catch (const std::exception& error) {
         QMessageBox::critical(this, "识别失败", error.what());
         appendLog(QString("识别异常: %1").arg(error.what()));
@@ -724,6 +720,7 @@ void MainWindow::onClear()
 {
     canvas_->clear();
     resultLabel_->setText("识别结果：");
+    confidenceLabel_->setText("可信度：--");
     appendLog("清空画板。");
 }
 

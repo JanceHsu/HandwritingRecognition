@@ -37,7 +37,7 @@ cmake --build D:\Develop\Project\Qt\HandwritingRecognition\build --config Releas
 powershell -ExecutionPolicy Bypass -File D:\Develop\Project\Qt\HandwritingRecognition\scripts\prepare_libtorch_cuda.ps1 -CudaLibtorchDir D:\Develop\libtorch-cuda
 ```
 
-然后将配置命令中的 LibTorch 路径改为 CUDA 目录，并将默认设备改为 auto 或 cuda。
+然后将配置命令中的 LibTorch 路径改为 CUDA 目录。
 
 编译成功后，可执行文件位于：
 
@@ -68,12 +68,11 @@ py -3.13 scripts\train_mnist.py --epochs 50 --batch-size 256 --output-dir artifa
 
 如果 Windows 机器页面文件较小，`--num-workers` 可以进一步降到 `0`，但优先建议先尝试 `2`。
 
-当前推荐把模型按训练来源分类存放：
+当前推荐把模型存放在 `artifacts\models\` 目录下：
 
-- `artifacts\models\cpu\mnist_model.pt`
-- `artifacts\models\gpu\mnist_model.pt`
+- `artifacts\models\mnist_model.pt`
 
-窗口里会显示 `CPU 模型` 和 `GPU 模型（推荐）` 两个选项，CUDA 可用时才允许选择 GPU 模型。
+窗口里会显示"使用 CUDA 进行推理"复选框，CUDA 可用时才允许勾选。默认使用 CPU 推理。
 
 ### 4. 打包发布版
 
@@ -103,19 +102,18 @@ powershell -ExecutionPolicy Bypass -File D:\Develop\Project\Qt\HandwritingRecogn
 powershell -ExecutionPolicy Bypass -File D:\Develop\Project\Qt\HandwritingRecognition\scripts\clean_project.ps1 -IncludeDataCache
 ```
 
-### 6. 模型选择与运行说明
+### 6. 模型与运行说明
 
-- `artifacts\models\cpu\mnist_model.pt` 是 CPU 模型。
-- `artifacts\models\gpu\mnist_model.pt` 是 GPU 模型。
-- 程序启动后会根据 CUDA 可用性控制 GPU 选项是否可选。
+- `artifacts\models\mnist_model.pt` 是模型文件（设备无关，CPU 和 CUDA 均可加载）。
+- 程序启动后默认使用 CPU 推理，CUDA 可用时可通过复选框切换。
 - 识别按钮采用启动预热后的单次推理路径，避免首次点击时出现长时间卡顿或闪退。
 
 ### 7. 推荐的完整构建顺序
 
 1. 配置 Qt 6.11.1 MSVC 和 LibTorch CUDA 路径。
-2. 训练 CPU 或 GPU 模型，输出到 `artifacts\models\cpu` 和 `artifacts\models\gpu`。
+2. 训练模型，输出到 `artifacts\models\`。
 3. 运行 `scripts\package_release.ps1` 生成 `dist`。
-4. 使用 `run_handwriting_recog.bat` 启动程序并确认模型切换与识别正常。
+4. 使用 `run_handwriting_recog.bat` 启动程序并确认推理设备切换与识别正常。
 
 目录中应包含：
 
@@ -152,23 +150,11 @@ D:\Develop\Project\Qt\HandwritingRecognition\run_handwriting_recog.bat
 
 这通常说明加载到了错误版本的 Qt DLL。必须优先使用 `msvc2022_64\bin` 下的 Qt 运行库。
 
-#### 7.4 如何指定 CPU/CUDA 设备
+#### 7.4 如何切换推理设备
 
-程序日志里的 `推理设备=cpu` 只表示当前模型在 CPU 上做推理，不表示模型不是 GPU 训练出来的。当前训练脚本已经是 CUDA 训练，默认启动器会优先用 `auto`，有 CUDA 就走 GPU。
+程序通过界面复选框控制推理设备：默认 CPU，勾选"使用 CUDA 进行推理"后切换为 CUDA。CUDA 不可用时复选框被禁用。
 
-可通过环境变量覆盖推理设备：
-
-```powershell
-$env:LIBTORCH_DEVICE = "cpu"   # 可选值: cpu / cuda / auto
-```
-
-可同时指定 LibTorch 目录（例如 CUDA 版本）：
-
-```powershell
-$env:LIBTORCH_DIR = "D:\Develop\libtorch-cuda"
-$env:LIBTORCH_DEVICE = "cuda"
-D:\Develop\Project\Qt\HandwritingRecognition\run_handwriting_recog.bat
-```
+日志中会显示当前使用的推理设备（`device = cpu` 或 `device = cuda`）。
 
 #### 7.2 点击识别仍然退出
 

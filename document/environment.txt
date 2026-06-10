@@ -21,8 +21,7 @@ CUDA / LibTorch notes:
 - Ensure `LIBTORCH_DIR` points to the chosen LibTorch; package and `run_handwriting_recog.bat` will copy the matching DLLs into `dist`.
 
 Runtime configuration:
-- Default inference device: `auto` recommended (falls back to CPU if CUDA unavailable)
-- Runtime override: `LIBTORCH_DEVICE=cpu|cuda|auto`
+- Default inference device: CPU (toggle CUDA via UI checkbox)
 - LibTorch path override: `LIBTORCH_DIR=<path-to-libtorch>`
 
 Paths used for local development in this workspace:

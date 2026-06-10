@@ -30,7 +30,7 @@ public:
 private slots:
     void onRecognize();
     void onClear();
-    void onModelSelectionChanged(int index);
+    void onCudaToggled(bool checked);
     void onAirModeToggled(bool checked);
     void onCameraSelectionChanged(int index);
     void onPreviewMirrorToggled(bool checked);
@@ -44,9 +44,8 @@ private:
     void setRecognitionEnabled(bool enabled);
     void appendLog(const QString& message);
     void setRecognitionBusy(bool busy);
-    QString selectedModelKey() const;
-    QString resolveModelPath(const QString& modelKey) const;
-    void loadRecognizerForSelection();
+    QString resolveModelPath() const;
+    void loadRecognizer();
     bool startAirWriting();
     void stopAirWriting();
     bool startCameraPreview();
@@ -60,9 +59,9 @@ private:
     QLabel* cameraPreviewLabel_ = nullptr;
     QLabel* cameraLabel_ = nullptr;
     QLabel* resultLabel_ = nullptr;
-    QLabel* modelLabel_ = nullptr;
+    QLabel* confidenceLabel_ = nullptr;
     QComboBox* cameraComboBox_ = nullptr;
-    QComboBox* modelComboBox_ = nullptr;
+    QCheckBox* cudaCheckBox_ = nullptr;
     QCheckBox* mirrorPreviewCheckBox_ = nullptr;
     QPushButton* airModeButton_ = nullptr;
     QPushButton* recognizeButton_ = nullptr;
@@ -77,6 +76,7 @@ private:
     bool airStrokeActive_ = false;
     QPointF lastAirPoint_;
     bool mirrorCameraPreview_ = false;
+    bool cudaAvailable_ = false;
     bool airSmoothedPointValid_ = false;
     QPointF airSmoothedPoint_;
     QPointF trackerCursorPoint_;

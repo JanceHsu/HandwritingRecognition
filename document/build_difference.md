@@ -7,7 +7,7 @@
 
 这份说明以本仓库当前状态为准，重点解决两个问题：
 
-1. Qt Creator 构建后无法稳定识别 CUDA / GPU 模型
+1. Qt Creator 构建后无法稳定使用 CUDA 推理
 2. 两种构建方式在调试、发布、部署和运行环境上的差异不清晰
 
 ## 一句话结论
@@ -102,15 +102,15 @@
 
 - CMake 发布由 `scripts/package_release.ps1` 负责
 - Qt Creator 发布由 qmake post-link 脚本 [scripts/deploy_qt_creator_build.ps1](../scripts/deploy_qt_creator_build.ps1) 负责
-- 两者最终都应得到：Qt 运行库、LibTorch DLL、CPU/GPU 模型文件
+- 两者最终都应得到：Qt 运行库、LibTorch DLL、模型文件
 
-## 为什么 Qt Creator 里会“识别不到 GPU 模型”
+## 为什么 Qt Creator 里会”识别不到 CUDA”
 
 常见原因有三个：
 
 1. 运行目录里只有 exe，没有 CUDA 版 LibTorch DLL，所以 `torch::cuda::is_available()` 返回 false
 2. 运行目录里没有模型文件，`resolveModelPathWithFallback()` 找不到 `artifacts/models` 或 `models`
-3. Qt Creator 使用了和命令行不同的 Kit / 环境变量，导致 `LIBTORCH_DIR` 或 `LIBTORCH_DEVICE` 不一致
+3. Qt Creator 使用了和命令行不同的 Kit / 环境变量，导致 `LIBTORCH_DIR` 不一致
 
 本仓库当前的修复策略是：
 

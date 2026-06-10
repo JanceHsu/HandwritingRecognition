@@ -13,20 +13,18 @@ if (-not $BuildRoot) {
     throw 'BuildRoot is required.'
 }
 
-$preferredExePath = Join-Path (Join-Path $BuildRoot $TargetConfig) "$TargetName.exe"
+$preferredExePath = Join-Path $BuildRoot "$TargetName.exe"
 if (Test-Path $preferredExePath) {
     $exePath = $preferredExePath
 } else {
-    $exeCandidates = Get-ChildItem -Path $BuildRoot -Recurse -Filter "$TargetName.exe" -File | Sort-Object FullName
-    if (-not $exeCandidates) {
-        throw "Executable not found under $BuildRoot for target $TargetName"
-    }
-
-    $targetDirName = [System.IO.Path]::GetFileName($TargetConfig)
-    $matchingExe = $exeCandidates | Where-Object { $_.Directory.Name -ieq $targetDirName } | Select-Object -First 1
-    if ($matchingExe) {
-        $exePath = $matchingExe.FullName
+    $preferredExePath = Join-Path (Join-Path $BuildRoot $TargetConfig) "$TargetName.exe"
+    if (Test-Path $preferredExePath) {
+        $exePath = $preferredExePath
     } else {
+        $exeCandidates = Get-ChildItem -Path $BuildRoot -Recurse -Filter "$TargetName.exe" -File | Sort-Object FullName
+        if (-not $exeCandidates) {
+            throw "Executable not found under $BuildRoot for target $TargetName"
+        }
         $exePath = $exeCandidates[0].FullName
     }
 }
@@ -35,28 +33,19 @@ if (-not (Test-Path $exePath)) {
     throw "Executable not found: $exePath"
 }
 
-$modelSourceRoot = Join-Path $ProjectDir 'artifacts\models'
-$modelTargets = @(
-    @{ Kind = 'cpu'; Source = Join-Path $modelSourceRoot 'cpu' },
-    @{ Kind = 'gpu'; Source = Join-Path $modelSourceRoot 'gpu' }
-)
-
-foreach ($modelTarget in $modelTargets) {
-    $sourceDir = $modelTarget.Source
-    if (-not (Test-Path $sourceDir)) {
-        Write-Warning "Model directory not found, skipping: $sourceDir"
-        continue
-    }
-
-    $destinationDir = Join-Path (Join-Path (Split-Path -Parent $exePath) 'models') $modelTarget.Kind
+$modelSourceDir = Join-Path $ProjectDir 'artifacts\models'
+if (Test-Path $modelSourceDir) {
+    $destinationDir = Join-Path (Split-Path -Parent $exePath) 'models'
     New-Item -ItemType Directory -Force -Path $destinationDir | Out-Null
 
     foreach ($fileName in @('mnist_model.pt', 'model.pth')) {
-        $sourceFile = Join-Path $sourceDir $fileName
+        $sourceFile = Join-Path $modelSourceDir $fileName
         if (Test-Path $sourceFile) {
             Copy-Item $sourceFile (Join-Path $destinationDir $fileName) -Force
         }
     }
+} else {
+    Write-Warning "Model directory not found, skipping: $modelSourceDir"
 }
 
 $libDir = Join-Path $LibtorchDir 'lib'

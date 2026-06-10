@@ -18,7 +18,7 @@
 
 **目标一：模型训练与导出。** 使用 Python 和 PyTorch 在 MNIST 数据集上训练一个手写数字分类模型，将训练好的模型导出为 TorchScript 格式，使 C++ 端可以直接加载使用。要求模型在测试集上的准确率达到 99% 以上。
 
-**目标二：桌面端识别应用。** 使用 Qt 框架开发一个桌面程序，包含手写画布、识别按钮、结果展示、模型切换等基本功能。用户在画布上书写数字后，程序能实时完成识别并显示结果。
+**目标二：桌面端识别应用。** 使用 Qt 框架开发一个桌面程序，包含手写画布、识别按钮、结果展示、推理设备切换等基本功能。用户在画布上书写数字后，程序能实时完成识别并显示结果。
 
 **目标三：隔空书写功能。** 在基本识别功能之上，通过摄像头实时捕捉用户的手部运动，让用户可以在空中"书写"数字。这个功能需要跨语言协作——Qt 端负责摄像头采集和画面显示，Python 端负责手部关键点检测，两者通过进程间通信交换数据。
 
@@ -30,7 +30,7 @@
 |------|--------|------|
 | 模型训练 | Python 3.13, PyTorch, Torchvision, CUDA 12.8 | 训练小型 CNN 模型并导出 TorchScript |
 | 模型推理 | LibTorch, TorchScript, QImage | 在 C++ 端加载模型，对画布图像进行预处理后返回识别结果 |
-| 图形界面 | Qt 6 Widgets | 实现用户界面，包含画布、按钮、模型选择、操作日志 |
+| 图形界面 | Qt 6 Widgets | 实现用户界面，包含画布、按钮、推理设备切换、操作日志 |
 | 手部追踪 | OpenCV, MediaPipe, QProcess | 通过摄像头检测手部关键点，驱动隔空书写 |
 | 工程构建 | CMake, MSVC 2022 | 标准化构建流程，支持 Debug/Release 配置 |
 
@@ -48,7 +48,7 @@
 
 **推理端（C++ + LibTorch）：** 负责加载训练好的模型，对用户输入的图像进行预处理，然后执行推理得到识别结果。推理模块封装在 `DigitRecognizer` 类中，对外只暴露 `predict()` 接口。
 
-**界面端（Qt Widgets）：** 负责和用户交互。画板控件 `Canvas` 接收鼠标或摄像头输入，主窗口 `MainWindow` 管理按钮事件、模型切换、结果显示和操作日志。
+**界面端（Qt Widgets）：** 负责和用户交互。画板控件 `Canvas` 接收鼠标或摄像头输入，主窗口 `MainWindow` 管理按钮事件、推理设备切换、结果显示和操作日志。
 
 对于隔空书写功能，系统还需要一个额外的协作链路：
 
@@ -383,40 +383,63 @@ int DigitRecognizer::predict(const cv::Mat& inputImage)
 
 #### 4.2.3 设备选择与预热
 
-C++ 推理端支持 CPU 和 CUDA 两种推理设备，选择逻辑如下：
+C++ 推理端支持 CPU 和 CUDA 两种推理设备，通过界面复选框控制：
 
-1. 首先检查环境变量 `LIBTORCH_DEVICE`
-2. 如果未设置，则使用编译时的默认配置（默认为 "auto"）
-3. "auto" 模式下，如果 CUDA 可用则使用 GPU，否则回退到 CPU
+- 程序启动时默认使用 CPU 推理
+- 如果系统检测到 CUDA 可用（存在 NVIDIA GPU + CUDA 驱动 + cuDNN），"使用 CUDA 进行推理"复选框会被启用，用户勾选后切换为 CUDA 推理
+- 如果 CUDA 不可用，复选框被禁用并显示提示，确保推理设备始终为 CPU
+- 切换设备时，程序会销毁当前识别器并以新设备重新加载模型
 
 当推理设备为 GPU 时，程序会在模型加载完成后执行一次"预热"：用一个全零的虚拟输入跑一次前向传播，并调用 `torch::cuda::synchronize()` 等待完成。这是因为 CUDA 的第一次推理会触发 kernel 编译和显存分配，如果不提前预热，用户第一次点击"识别"按钮时会明显感到卡顿。
 
 CPU 推理不需要预热，因为 CPU 上没有 kernel 编译的问题。
 
+以下是 `src/mainwindow.cpp` 中 CUDA 切换和模型加载的核心代码：
+
+```cpp
+void MainWindow::onCudaToggled(bool checked)
+{
+    if (checked && !cudaAvailable_) {
+        appendLog("CUDA 不可用，无法切换到 CUDA 推理。");
+        if (cudaCheckBox_ != nullptr) {
+            cudaCheckBox_->blockSignals(true);
+            cudaCheckBox_->setChecked(false);
+            cudaCheckBox_->blockSignals(false);
+        }
+        return;
+    }
+    appendLog(QString("推理设备切换: %1").arg(checked ? "CUDA" : "CPU"));
+    loadRecognizer();
+}
+
+void MainWindow::loadRecognizer()
+{
+    const bool useCuda = cudaCheckBox_ != nullptr && cudaCheckBox_->isChecked();
+    const QString modelPath = resolveModelPath();
+    // ...
+    recognizer_ = new DigitRecognizer(modelPath.toStdString(), useCuda);
+    recognizer_->warmUp();
+    // ...
+}
+```
+
 以下是 `src/recognizer.cpp` 中的设备选择和预热代码：
 
 ```cpp
-// 设备选择逻辑
-torch::Device DigitRecognizer::resolveDevice()
+// 构造函数：根据 useCuda 参数决定设备
+DigitRecognizer::DigitRecognizer(const std::string& modelPath, bool useCuda)
 {
-    const std::string requested = requestedDeviceName();  // 读取环境变量或编译宏
-
-    if (requested == "cuda") {
+    if (useCuda) {
         if (!torch::cuda::is_available())
-            throw std::runtime_error("CUDA is not available");
+            throw std::runtime_error("CUDA requested but not available.");
+        device = torch::Device(torch::kCUDA);
         deviceName_ = "cuda";
-        return torch::Device(torch::kCUDA);
-    }
-    if (requested == "auto") {
-        if (torch::cuda::is_available()) {
-            deviceName_ = "cuda";
-            return torch::Device(torch::kCUDA);
-        }
+    } else {
+        device = torch::Device(torch::kCPU);
         deviceName_ = "cpu";
-        return torch::Device(torch::kCPU);
     }
-    deviceName_ = "cpu";
-    return torch::Device(torch::kCPU);
+    model = torch::jit::load(modelPath, device);
+    model.eval();
 }
 
 // CUDA 预热：做一次空推理，触发 kernel 编译
@@ -444,7 +467,7 @@ void DigitRecognizer::warmUp()
 
 **左侧** 分为上下两部分：上方是"隔空书写预览"区域，包含摄像头选择下拉框、摄像头预览画面（400×240 像素的深色区域）和"开启隔空书写"按钮；下方是"手写画布"区域，提供 280×280 像素的白色画布供用户鼠标书写。
 
-**右侧** 是控制面板，从上到下依次为：识别结果标签、隔空手势说明、摄像头镜像开关、模型选择下拉框、操作提示、"识别"按钮、"清空"按钮、操作日志区域。
+**右侧** 是控制面板，从上到下依次为：识别结果标签、可信度标签、隔空手势说明、摄像头镜像开关、CUDA 推理开关、操作提示、"识别"按钮、"清空"按钮、操作日志区域。
 
 整个界面使用了现代的卡片式设计风格，控件有圆角和阴影效果，按钮有 hover 状态的颜色变化，整体视觉效果比较整洁。
 
@@ -494,22 +517,37 @@ void Canvas::mouseReleaseEvent(QMouseEvent* event) {
 }
 ```
 
-#### 4.3.3 模型切换
+#### 4.3.3 推理设备切换
 
-界面右侧提供了模型选择下拉框，包含"GPU 模型（推荐）"和"CPU 模型"两个选项。如果系统检测到 CUDA 不可用（比如没有 NVIDIA 显卡或者没有安装 CUDA 版本的 LibTorch），GPU 选项会被自动移除。
+界面右侧提供了"使用 CUDA 进行推理"复选框。程序启动时会检测 CUDA 可用性：如果系统有 NVIDIA GPU 且 libtorch 的 CUDA 支持正常，复选框会被启用；否则复选框被禁用并提示"未检测到可用的 CUDA 设备"。
 
-切换模型时，程序会销毁当前的识别器实例，重新加载对应的模型文件，并执行预热。整个过程在日志区域有详细记录。
+默认状态下复选框未勾选，使用 CPU 推理。用户勾选后，程序会销毁当前的识别器实例，以 CUDA 设备重新加载模型文件，并执行预热。取消勾选则切换回 CPU 推理。整个过程在日志区域有详细记录。
 
-模型文件的查找支持回退机制：如果找不到用户选择的模型，会自动尝试加载另一种模型。搜索路径包括可执行文件目录、上级目录、`artifacts/models`、`dist/models` 等多个位置，确保在开发环境和发布环境中都能正常工作。
+项目只使用一份模型文件 `mnist_model.pt`，模型文件本身不绑定设备，CPU 和 CUDA 都加载同一份文件。
 
-以下是 `src/mainwindow.cpp` 中模型加载与切换的核心代码：
+模型文件的查找支持回退机制：搜索路径包括可执行文件目录、上级目录、`artifacts/models`、`dist/models` 等多个位置，确保在开发环境和发布环境中都能正常工作。
+
+以下是 `src/mainwindow.cpp` 中设备切换与模型加载的核心代码：
 
 ```cpp
-void MainWindow::loadRecognizerForSelection()
+void MainWindow::onCudaToggled(bool checked)
 {
-    const QString modelKey = selectedModelKey();   // "cpu" 或 "gpu"
-    const QString modelPath = resolveModelPath(modelKey);
-    appendLog(QString("准备加载模型: key=%1, path=%2").arg(modelKey, modelPath));
+    if (checked && !cudaAvailable_) {
+        appendLog("CUDA 不可用，无法切换到 CUDA 推理。");
+        cudaCheckBox_->blockSignals(true);
+        cudaCheckBox_->setChecked(false);
+        cudaCheckBox_->blockSignals(false);
+        return;
+    }
+    appendLog(QString("推理设备切换: %1").arg(checked ? "CUDA" : "CPU"));
+    loadRecognizer();
+}
+
+void MainWindow::loadRecognizer()
+{
+    const bool useCuda = cudaCheckBox_ != nullptr && cudaCheckBox_->isChecked();
+    const QString modelPath = resolveModelPath();
+    appendLog(QString("准备加载模型: useCuda=%1, path=%2").arg(useCuda, modelPath));
 
     if (modelPath.isEmpty()) {
         setRecognitionEnabled(false);
@@ -522,8 +560,8 @@ void MainWindow::loadRecognizerForSelection()
     recognizer_ = nullptr;
 
     try {
-        recognizer_ = new DigitRecognizer(modelPath.toStdString());
-        recognizer_->warmUp();          // CUDA 预热
+        recognizer_ = new DigitRecognizer(modelPath.toStdString(), useCuda);
+        recognizer_->warmUp();
         setRecognitionEnabled(true);
         appendLog(QString("模型加载成功: device=%1")
                   .arg(QString::fromStdString(recognizer_->deviceName())));
@@ -536,11 +574,12 @@ void MainWindow::loadRecognizerForSelection()
 }
 ```
 
-模型文件查找逻辑会在多个候选路径中搜索 `{key}/mnist_model.pt`，找不到时自动回退到另一种模型：
+模型文件查找逻辑在多个候选路径中搜索 `mnist_model.pt`：
 
 ```cpp
-QString resolveModelPathWithFallback(const QString& modelKey)
+QString resolveModelPathWithFallback()
 {
+    const QString appDir = QCoreApplication::applicationDirPath();
     const QStringList roots = {
         QDir(appDir).filePath("models"),
         QDir(appDir).filePath("../models"),
@@ -548,15 +587,8 @@ QString resolveModelPathWithFallback(const QString& modelKey)
         QDir(appDir).filePath("../dist/models"),
         // ...
     };
-    // 优先查找用户选择的模型
     for (const QString& root : roots) {
-        QString candidate = candidateModelPath(root, modelKey);
-        if (!candidate.isEmpty()) return candidate;
-    }
-    // 回退到另一种模型
-    const QString fallbackKey = (modelKey == "gpu") ? "cpu" : "gpu";
-    for (const QString& root : roots) {
-        QString candidate = candidateModelPath(root, fallbackKey);
+        QString candidate = candidateModelPath(root);
         if (!candidate.isEmpty()) return candidate;
     }
     return {};
@@ -905,7 +937,7 @@ void MainWindow::onAirTrackingUpdated(
 - `handwriting_recog.exe`：主程序
 - Qt 运行库（Qt6Core.dll、Qt6Gui.dll、Qt6Widgets.dll 等）
 - LibTorch 运行库（torch_cpu.dll、torch.dll、c10.dll 等，CUDA 版还包含 torch_cuda.dll）
-- `models/cpu/mnist_model.pt` 和 `models/gpu/mnist_model.pt`：两套模型文件
+- `models/mnist_model.pt`：TorchScript 模型文件
 - `run_handwriting_recog.bat`：一键启动脚本
 
 ---

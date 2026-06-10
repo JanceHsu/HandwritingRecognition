@@ -7,9 +7,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-set(HANDWRITING_RECOG_DEFAULT_DEVICE "auto" CACHE STRING "Default inference device: cpu|cuda|auto")
-set_property(CACHE HANDWRITING_RECOG_DEFAULT_DEVICE PROPERTY STRINGS cpu cuda auto)
-
 find_package(Qt6 REQUIRED COMPONENTS Widgets Multimedia)
 find_package(Torch REQUIRED)
 
@@ -36,7 +33,7 @@ add_custom_command(TARGET handwriting_recog POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/artifacts/models
             $<TARGET_FILE_DIR:handwriting_recog>/models
-    COMMENT "Copying MNIST models to target output directory"
+    COMMENT "Copying MNIST model to target output directory"
 )
 
 if (WIN32)
@@ -49,9 +46,5 @@ if (WIN32)
         shlwapi
     )
 endif()
-
-target_compile_definitions(handwriting_recog PRIVATE
-    HANDWRITING_RECOG_DEFAULT_DEVICE="${HANDWRITING_RECOG_DEFAULT_DEVICE}"
-)
 
 target_compile_features(handwriting_recog PRIVATE cxx_std_17)

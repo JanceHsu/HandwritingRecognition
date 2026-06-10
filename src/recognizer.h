@@ -38,7 +38,7 @@ struct PredictResult {
 
 class DigitRecognizer {
 public:
-    explicit DigitRecognizer(const std::string& modelPath);
+    explicit DigitRecognizer(const std::string& modelPath, bool useCuda);
     int predict(const cv::Mat& inputImage);
     int predict(const QImage& inputImage);
     PredictResult predictWithConfidence(const cv::Mat& inputImage);
@@ -51,6 +51,5 @@ private:
     torch::Device device = torch::kCPU;
     std::string deviceName_ = "cpu";
 
-    torch::Device resolveDevice();
     std::vector<float> preprocess(const cv::Mat& img);
 };

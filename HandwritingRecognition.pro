@@ -33,8 +33,6 @@ HEADERS += \
     src/canvas.h \
     src/recognizer.h
 
-DEFINES += HANDWRITING_RECOG_DEFAULT_DEVICE=auto
-
 win32 {
     LIBS += -lmf -lmfplat -lmfreadwrite -lmfuuid -lole32 -lshlwapi
     LIBS += -L$$LIBTORCH_DIR/lib -ltorch -ltorch_cpu -lc10

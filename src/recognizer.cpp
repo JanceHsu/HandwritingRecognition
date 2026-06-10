@@ -19,23 +19,6 @@ namespace {
 constexpr float kMnistMean = 0.1307f;
 constexpr float kMnistStd = 0.3081f;
 
-#define HANDWRITING_RECOG_STRINGIFY_IMPL(x) #x
-#define HANDWRITING_RECOG_STRINGIFY(x) HANDWRITING_RECOG_STRINGIFY_IMPL(x)
-
-std::string normalizeMacroString(const char* value)
-{
-    if (value == nullptr) {
-        return {};
-    }
-
-    std::string normalized(value);
-    if (normalized.size() >= 2 && normalized.front() == '"' && normalized.back() == '"') {
-        normalized = normalized.substr(1, normalized.size() - 2);
-    }
-
-    return normalized;
-}
-
 std::vector<float> normalizeToMnist(const QImage& grayImage)
 {
     if (grayImage.isNull() || grayImage.width() <= 0 || grayImage.height() <= 0) {
@@ -105,70 +88,26 @@ std::vector<float> preprocessImage(const QImage& img)
     return normalizeToMnist(img.convertToFormat(QImage::Format_Grayscale8));
 }
 
-std::string normalizeDeviceName(std::string value)
-{
-    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
-        return static_cast<char>(std::tolower(ch));
-    });
-    return value;
-}
-
-std::string requestedDeviceName()
-{
-    const QByteArray envDevice = qgetenv("LIBTORCH_DEVICE");
-    if (!envDevice.isEmpty()) {
-        return normalizeDeviceName(envDevice.toStdString());
-    }
-
-#ifdef HANDWRITING_RECOG_DEFAULT_DEVICE
-    return normalizeDeviceName(normalizeMacroString(HANDWRITING_RECOG_STRINGIFY(HANDWRITING_RECOG_DEFAULT_DEVICE)));
-#else
-    return "cpu";
-#endif
-}
-
-#undef HANDWRITING_RECOG_STRINGIFY
-#undef HANDWRITING_RECOG_STRINGIFY_IMPL
-
 } // namespace
 
-torch::Device DigitRecognizer::resolveDevice()
-{
-    const std::string requested = requestedDeviceName();
-
-    if (requested == "cuda") {
-        if (!torch::cuda::is_available()) {
-            throw std::runtime_error("LIBTORCH_DEVICE=cuda but CUDA is not available in current LibTorch/runtime.");
-        }
-        deviceName_ = "cuda";
-        return torch::Device(torch::kCUDA);
-    }
-
-    if (requested == "auto") {
-        if (torch::cuda::is_available()) {
-            deviceName_ = "cuda";
-            return torch::Device(torch::kCUDA);
-        }
-        deviceName_ = "cpu";
-        return torch::Device(torch::kCPU);
-    }
-
-    if (requested != "cpu") {
-        throw std::runtime_error("Invalid LIBTORCH_DEVICE value. Use cpu, cuda, or auto.");
-    }
-
-    deviceName_ = "cpu";
-    return torch::Device(torch::kCPU);
-}
-
-DigitRecognizer::DigitRecognizer(const std::string& modelPath)
+DigitRecognizer::DigitRecognizer(const std::string& modelPath, bool useCuda)
 {
     try {
         if (!std::filesystem::exists(modelPath)) {
             throw std::runtime_error("Model file not found: " + modelPath);
         }
 
-        device = resolveDevice();
+        if (useCuda) {
+            if (!torch::cuda::is_available()) {
+                throw std::runtime_error("CUDA requested but not available in current LibTorch/runtime.");
+            }
+            device = torch::Device(torch::kCUDA);
+            deviceName_ = "cuda";
+        } else {
+            device = torch::Device(torch::kCPU);
+            deviceName_ = "cpu";
+        }
+
         model = torch::jit::load(modelPath, device);
         model.eval();
     } catch (const c10::Error& error) {

@@ -145,11 +145,11 @@ D:\Develop\Project\Qt\HandwritingRecognition\run_handwriting_recog.bat
 - CUDA 可用时，GPU 选项可选择。
 - 点击“识别”不会出现首次闪退。
 
-## 6. 模型切换规则
+## 6. 推理设备切换
 
-- CPU 模型用于兼容和验证。
-- GPU 模型用于 CUDA 可用环境下的正式推理。
-- 程序会在启动时预热当前模型，减少第一次点击时的延迟和崩溃风险。
+- 程序默认使用 CPU 推理。
+- CUDA 可用时，用户可通过复选框切换为 CUDA 推理。
+- 程序会在加载模型后预热当前设备，减少第一次点击时的延迟和崩溃风险。
 - 识别过程中会锁定按钮，防止重复点击重入。
 
 ## 7. 发布目录建议保留内容
@@ -177,7 +177,7 @@ D:\Develop\Project\Qt\HandwritingRecognition\run_handwriting_recog.bat
 
 - 检查 CUDA 是否可用。
 - 检查 LibTorch 是否是 CUDA 版本。
-- 检查 `LIBTORCH_DEVICE` 是否被强制设成了 `cpu`。
+- 确认复选框已勾选"使用 CUDA 进行推理"。
 
 ### 8.3 构建包里缺少模型
 

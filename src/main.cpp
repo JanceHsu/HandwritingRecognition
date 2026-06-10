@@ -6,17 +6,21 @@
 
 namespace {
 
-void primeRuntimeSearchPaths()
+void primeDllSearchPath()
 {
     const QString appDir = QCoreApplication::applicationDirPath();
-    QStringList pathParts = QString::fromLocal8Bit(qgetenv("PATH")).split(';', Qt::SkipEmptyParts);
+    if (appDir.isEmpty()) {
+        return;
+    }
+
+#ifdef Q_OS_WIN
     const QString nativeAppDir = QDir::toNativeSeparators(appDir);
+    QStringList pathParts = QString::fromLocal8Bit(qgetenv("PATH")).split(';', Qt::SkipEmptyParts);
     if (!pathParts.contains(nativeAppDir, Qt::CaseInsensitive)) {
         pathParts.prepend(nativeAppDir);
     }
-
     qputenv("PATH", pathParts.join(';').toLocal8Bit());
-    QCoreApplication::addLibraryPath(appDir);
+#endif
 }
 
 } // namespace
@@ -24,7 +28,8 @@ void primeRuntimeSearchPaths()
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
-    primeRuntimeSearchPaths();
+    primeDllSearchPath();
+
     QApplication::setStyle("Fusion");
     QApplication::setApplicationName("Handwriting Recognition");
     QApplication::setApplicationDisplayName("Handwriting Recognition");
