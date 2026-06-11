@@ -149,13 +149,13 @@ powershell -ExecutionPolicy Bypass -File scripts\clean_project.ps1
 
 ```powershell
 # GPU 正式训练
-py -3.12 scripts\train_mnist.py --epochs 50 --batch-size 64 --output-dir artifacts\models\gpu --device cuda --pin-memory --num-workers 8
+py -3.12 scripts\train_mnist.py --epochs 50 --batch-size 64 --output-dir artifacts\models --device cuda --pin-memory --num-workers 8
 
 # CPU 快速验证
-py -3.12 scripts\train_mnist.py --epochs 3 --batch-size 256 --output-dir artifacts\models\cpu --device cpu --no-augment --num-workers 0
+py -3.12 scripts\train_mnist.py --epochs 3 --batch-size 256 --output-dir artifacts\models --device cpu --no-augment --num-workers 0
 ```
 
-训练产物位于 `artifacts/models/{cpu,gpu}/`，包含 `mnist_model.pt`（TorchScript）和 `model.pth`（PyTorch state_dict）。详细训练技术细节参见 [model.md](model.md)。
+训练产物位于 `artifacts/models/`，包含 `mnist_model.pt`（TorchScript）和 `model.pth`（PyTorch state_dict）。详细训练技术细节参见 [model.md](model.md)。
 
 ---
 

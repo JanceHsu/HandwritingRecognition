@@ -30,7 +30,7 @@ Paths used for local development in this workspace:
 
 Scripts:
 - `scripts/prepare_libtorch_cuda.ps1`: assists switching to a CUDA LibTorch build and updating packaging references.
-- `scripts/package_release.ps1`: packages the app and copies only classified models from `artifacts/models/{cpu,gpu}` into `dist/models`.
+- `scripts/package_release.ps1`: packages the app and copies models from `artifacts/models/` into `dist/models/`.
 
 Quick checks:
 ```powershell

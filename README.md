@@ -38,7 +38,7 @@ HandwritingRecognition/
 │   ├── clean_project.ps1       # 项目清理脚本
 │   └── prepare_libtorch_cuda.ps1   # CUDA 环境预检脚本
 ├── document/                   # 项目文档
-├── artifacts/                  # 训练产物（models/cpu, models/gpu）
+├── artifacts/                  # 训练产物（models/mnist_model.pt, models/model.pth）
 ├── dist/                       # 发布包输出
 ├── CMakeLists.txt              # CMake 构建脚本
 ├── HandwritingRecognition.pro  # qmake 构建脚本（Qt Creator）
@@ -66,10 +66,10 @@ D:\Develop\libtorch
 ### 1. 训练模型
 
 ```powershell
-py -3.12 scripts\train_mnist.py --epochs 50 --batch-size 64 --output-dir artifacts\models\gpu --device cuda --pin-memory --num-workers 8
+py -3.12 scripts\train_mnist.py --epochs 50 --batch-size 64 --output-dir artifacts\models --device cuda --pin-memory --num-workers 8
 ```
 
-训练完成后，`artifacts/models/gpu/` 下会生成 `mnist_model.pt` 和 `model.pth`。
+训练完成后，`artifacts/models/` 下会生成 `mnist_model.pt` 和 `model.pth`。
 
 ### 2. 构建程序
 

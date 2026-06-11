@@ -165,10 +165,10 @@ traced.save("mnist_model.pt")
 
 ```powershell
 # GPU 正式训练
-py -3.12 scripts\train_mnist.py --epochs 50 --batch-size 64 --output-dir artifacts\models\gpu --device cuda --pin-memory --num-workers 8
+py -3.12 scripts\train_mnist.py --epochs 50 --batch-size 64 --output-dir artifacts\models --device cuda --pin-memory --num-workers 8
 
 # CPU 快速验证
-py -3.12 scripts\train_mnist.py --epochs 3 --batch-size 256 --output-dir artifacts\models\cpu --device cpu --no-augment --num-workers 0
+py -3.12 scripts\train_mnist.py --epochs 3 --batch-size 256 --output-dir artifacts\models --device cpu --no-augment --num-workers 0
 ```
 
 ---

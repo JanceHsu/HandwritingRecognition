@@ -36,35 +36,18 @@ New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 Copy-Item $exePath $OutputDir -Force
 
 $artifactDir = Join-Path $ProjectDir 'artifacts'
-$modelTargets = @(
-    @{ Kind = 'cpu'; Source = @(
-        (Join-Path $artifactDir 'models\cpu\mnist_model.pt')
-    ) },
-    @{ Kind = 'gpu'; Source = @(
-        (Join-Path $artifactDir 'models\gpu\mnist_model.pt')
-    ) }
-)
+$modelSource = Join-Path $artifactDir 'models\mnist_model.pt'
+if (-not (Test-Path $modelSource)) {
+    throw "Model file not found: $modelSource"
+}
 
-foreach ($modelTarget in $modelTargets) {
-    $modelDir = Join-Path (Join-Path $OutputDir 'models') $modelTarget.Kind
-    New-Item -ItemType Directory -Force -Path $modelDir | Out-Null
+$modelDir = Join-Path $OutputDir 'models'
+New-Item -ItemType Directory -Force -Path $modelDir | Out-Null
+Copy-Item $modelSource (Join-Path $modelDir 'mnist_model.pt') -Force
 
-    $copied = $false
-    foreach ($candidate in $modelTarget.Source) {
-        if (Test-Path $candidate) {
-            Copy-Item $candidate (Join-Path $modelDir 'mnist_model.pt') -Force
-            $candidateState = Join-Path (Split-Path $candidate -Parent) 'model.pth'
-            if (Test-Path $candidateState) {
-                Copy-Item $candidateState (Join-Path $modelDir 'model.pth') -Force
-            }
-            $copied = $true
-            break
-        }
-    }
-
-    if (-not $copied) {
-        throw "Model file not found for $($modelTarget.Kind) target"
-    }
+$modelStateSource = Join-Path $artifactDir 'models\model.pth'
+if (Test-Path $modelStateSource) {
+    Copy-Item $modelStateSource (Join-Path $modelDir 'model.pth') -Force
 }
 
 $windeployqt = Join-Path $QtBin 'windeployqt.exe'

@@ -935,7 +935,7 @@ void MainWindow::onAirTrackingUpdated(
 - `handwriting_recog.exe`：主程序
 - Qt 运行库（Qt6Core.dll、Qt6Gui.dll、Qt6Widgets.dll 等）
 - LibTorch 运行库（torch_cpu.dll、torch.dll、c10.dll 等，CUDA 版还包含 torch_cuda.dll、c10_cuda.dll）
-- `models/cpu/mnist_model.pt` 和 `models/gpu/mnist_model.pt`：TorchScript 模型文件
+- `models/mnist_model.pt`：TorchScript 模型文件
 - `run_handwriting_recog.bat`：一键启动脚本（自动设置 PATH 包含 Qt 和 LibTorch 路径）
 
 ---

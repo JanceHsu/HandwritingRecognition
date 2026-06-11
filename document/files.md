@@ -62,8 +62,7 @@ scripts/
 
 | 目录 | 内容 |
 |------|------|
-| `artifacts/models/cpu/` | CPU 训练产物：`mnist_model.pt`、`model.pth` |
-| `artifacts/models/gpu/` | GPU 训练产物：`mnist_model.pt`、`model.pth` |
+| `artifacts/models/` | 训练产物：`mnist_model.pt`、`model.pth` |
 | `build/` | CMake/qmake 构建输出（中间文件、可执行文件、DLL） |
 | `dist/` | 发布包输出（`handwriting_recog.exe`、Qt/LibTorch DLL、模型、启动脚本） |
 
