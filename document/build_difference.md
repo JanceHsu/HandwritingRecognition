@@ -106,7 +106,17 @@
 
 ## 为什么 Qt Creator 里会”识别不到 CUDA”
 
-常见原因有三个：
+本项目遇到过的一个核心原因（已修复）：
+
+**缺少 MSVC 链接器强制包含符号。** CMake 的 `find_package(Torch)` 会自动为目标添加链接器选项 `-INCLUDE:?warp_size@cuda@at@@YAHXZ`，该符号由 LibTorch 的 CUDA 后端导出。如果最终可执行文件中缺少该符号，MSVC 的死代码消除会连带移除 CUDA 初始化入口，导致程序运行时 `torch::cuda::is_available()` 返回 false——即使 `torch_cuda.dll` 已经正确部署在运行目录中。`HandwritingRecognition.pro` 最初没有设置这个链接器选项，后来已补上：
+
+```qmake
+QMAKE_LFLAGS += -INCLUDE:?warp_size@cuda@at@@YAHXZ
+```
+
+此行位于 `exists($$LIBTORCH_DIR/lib/torch_cuda.lib)` 块内，仅在链接 CUDA 版 LibTorch 时生效。
+
+其他常见原因：
 
 1. 运行目录里只有 exe，没有 CUDA 版 LibTorch DLL，所以 `torch::cuda::is_available()` 返回 false
 2. 运行目录里没有模型文件，`resolveModelPathWithFallback()` 找不到 `artifacts/models` 或 `models`
@@ -114,7 +124,7 @@
 
 本仓库当前的修复策略是：
 
-- qmake 构建时链接 CUDA 版 LibTorch
+- qmake 构建时链接 CUDA 版 LibTorch 并强制包含 CUDA 初始化符号
 - qmake 构建后自动复制 LibTorch DLL 和模型文件到构建目录
 - 运行时代码向上搜索 `models` / `artifacts/models` / `dist/models`
 

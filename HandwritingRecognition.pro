@@ -40,6 +40,12 @@ win32 {
     exists($$LIBTORCH_DIR/lib/torch_cuda.lib) {
         LIBS += -lc10_cuda -ltorch_cuda -lcaffe2_nvrtc -lkineto
 
+        # Force-include the CUDA warp_size symbol so the MSVC linker does not
+        # strip the CUDA initialization code. This is what CMake's
+        # find_package(Torch) adds automatically via INTERFACE_LINK_OPTIONS.
+        # Without it, torch::cuda::is_available() returns false at runtime.
+        QMAKE_LFLAGS += -INCLUDE:?warp_size@cuda@at@@YAHXZ
+
         # Link CUDA Toolkit runtime (required for torch::cuda::is_available)
         CUDA_PATH = $$(CUDA_PATH)
         isEmpty(CUDA_PATH) {
