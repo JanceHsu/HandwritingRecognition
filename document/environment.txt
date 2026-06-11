@@ -3,7 +3,7 @@ Environment snapshot for HandwritingRecognition
 Date: 2026-05-17
 
 Python runtime:
-- Version: 3.13.x (recommended)
+- Version: 3.12.x (recommended)
 
 Python packages (examples):
 - torch: 2.12+ (use CUDA-enabled wheel when training on GPU)
@@ -34,7 +34,7 @@ Scripts:
 
 Quick checks:
 ```powershell
-py -3.13 --version
+py -3.12 --version
 & "D:\Develop\Qt\Tools\CMake_64\bin\cmake.exe" --version
 & "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin\nvcc.exe" --version  # if using CUDA
 ```

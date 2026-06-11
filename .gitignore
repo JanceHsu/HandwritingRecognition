@@ -1,29 +1,47 @@
+# ── 构建产物 ──
 build/
 dist/
-artifacts/
-artifacts_gpu_check/
-artifacts_gpu_check2/
+
+# ── 训练产物 ──
+#artifacts/
+
+# ── Python ──
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.venv/
+
+# ── 数据缓存 ──
+data
+scripts/.cache/
+
+# ── 临时文件 ──
 *.log
 *.tmp
 *.bak
-data/MNIST/raw/
 test_images/
-model.pth
-mnist_model.pt
-preprocess.json
 test_log.md
+
+# ── IDE / 编辑器 ──
 *.user
 *.suo
 *.VC.db
 *.VC.opendb
-.agents/
 .vscode/
-reference/
-report/
+.idea/
+.qtcreator
+
+# ── AI 工具 ──
+.agents/
+.claude/
+
+# ── Node.js ──
 node_modules/
-scripts/*.js
-document/qtwarning.md
+
+# ── 参考资料与报告 ──
+reference/
+
+# ── 操作系统 ──
+.DS_Store
+Thumbs.db

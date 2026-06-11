@@ -28,7 +28,7 @@
 
 | 模块 | 技术栈 | 作用 |
 |------|--------|------|
-| 模型训练 | Python 3.13, PyTorch, Torchvision, CUDA 12.8 | 训练小型 CNN 模型并导出 TorchScript |
+| 模型训练 | Python 3.12, PyTorch, Torchvision, CUDA 12.8 | 训练小型 CNN 模型并导出 TorchScript |
 | 模型推理 | LibTorch, TorchScript, QImage | 在 C++ 端加载模型，对画布图像进行预处理后返回识别结果 |
 | 图形界面 | Qt 6 Widgets | 实现用户界面，包含画布、按钮、推理设备切换、操作日志 |
 | 手部追踪 | OpenCV, MediaPipe, QProcess | 通过摄像头检测手部关键点，驱动隔空书写 |
@@ -911,6 +911,18 @@ void MainWindow::onAirTrackingUpdated(
 }
 ```
 
+### 4.5 构建系统与工程化部署
+
+本项目同时维护两套构建入口，分别面向不同的使用场景：
+
+**命令行 CMake 构建**用于可复现的发布流程。构建命令通过 `-DCMAKE_PREFIX_PATH` 和 `-DTorch_DIR` 显式指定 Qt 和 LibTorch 的路径，使用 Visual Studio 2022 作为生成器。CMake 的 `find_package(Torch)` 会自动检测 CUDA 支持，配置正确的编译定义和链接器选项，包括关键的 `-INCLUDE:?warp_size@cuda@at@@YAHXZ` 链接器强制包含符号。构建完成后，`scripts/package_release.ps1` 负责将 Qt 运行库、LibTorch DLL 和模型文件复制到 `dist/` 发布目录，并生成一键启动脚本 `run_handwriting_recog.bat`。
+
+**Qt Creator qmake 构建**用于日常开发调试。`HandwritingRecognition.pro` 中手动配置了 LibTorch 的头文件路径和库链接，并通过 `exists()` 条件判断自动检测 CUDA 版 LibTorch 并链接相应库。构建完成后，`QMAKE_POST_LINK` 自动调用 `scripts/deploy_qt_creator_build.ps1` 将 DLL 和模型文件部署到构建目录。
+
+两种构建方式编译的是同一套源码，但在链接器配置上存在差异。CMake 通过 `find_package(Torch)` 自动注入的链接器选项，需要在 qmake 中手动添加，否则 MSVC 链接器的死代码消除会移除 CUDA 初始化入口，导致运行时无法检测到 CUDA。
+
+项目还处理了 LibTorch 与 Qt 的宏冲突问题：两者都定义了 `slots` 和 `signals` 宏，直接包含 LibTorch 头文件会导致编译错误。`src/recognizer.h` 通过在包含 LibTorch 头文件前先 `#undef` 这两个宏、包含后再恢复的方式解决。
+
 ---
 
 ## 五、实验结果
@@ -936,9 +948,9 @@ void MainWindow::onAirTrackingUpdated(
 发布包位于 `dist/` 目录，包含：
 - `handwriting_recog.exe`：主程序
 - Qt 运行库（Qt6Core.dll、Qt6Gui.dll、Qt6Widgets.dll 等）
-- LibTorch 运行库（torch_cpu.dll、torch.dll、c10.dll 等，CUDA 版还包含 torch_cuda.dll）
-- `models/mnist_model.pt`：TorchScript 模型文件
-- `run_handwriting_recog.bat`：一键启动脚本
+- LibTorch 运行库（torch_cpu.dll、torch.dll、c10.dll 等，CUDA 版还包含 torch_cuda.dll、c10_cuda.dll）
+- `models/cpu/mnist_model.pt` 和 `models/gpu/mnist_model.pt`：TorchScript 模型文件
+- `run_handwriting_recog.bat`：一键启动脚本（自动设置 PATH 包含 Qt 和 LibTorch 路径）
 
 ---
 
@@ -955,6 +967,8 @@ void MainWindow::onAirTrackingUpdated(
 **问题五：Windows 下多进程数据加载器不稳定。** 使用较多的 `num_workers` 时偶尔出现内存分配失败。原因是 Windows 使用 spawn 方式创建子进程，开销比 Linux 的 fork 大。解决方案是将 Windows 下的 num_workers 限制为不超过 2。
 
 **问题六：LibTorch 和 Qt 的宏冲突。** LibTorch 的头文件和 Qt 的信号/槽机制都定义了 `slots` 和 `signals` 宏，直接包含会导致编译错误。解决方案是在包含 LibTorch 头文件之前先取消这两个宏的定义，包含之后再恢复。
+
+**问题七：Qt Creator 构建后 CUDA 不可用。** 命令行 CMake 构建的程序能正常检测 CUDA，但 Qt Creator 的 qmake 构建却显示 `CUDA available: false`。经排查发现，CMake 的 `find_package(Torch)` 会自动向 MSVC 链接器注入 `-INCLUDE:?warp_size@cuda@at@@YAHXZ` 选项，强制包含 LibTorch CUDA 后端的初始化符号。qmake 构建缺少该选项时，链接器的死代码消除会连带移除 CUDA 初始化入口，导致运行时无法检测到 CUDA。解决方案是在 `HandwritingRecognition.pro` 的 CUDA 链接块中添加 `QMAKE_LFLAGS += -INCLUDE:?warp_size@cuda@at@@YAHXZ`。
 
 ---
 

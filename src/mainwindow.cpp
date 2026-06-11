@@ -277,7 +277,7 @@ void MainWindow::buildUi()
 
     setCentralWidget(centralWidget);
 
-    auto* footer = new QLabel("Made by Jance", this);
+    auto* footer = new QLabel("华南理工大学 高级程序设计教程 C++ II 大作业", this);
     footer->setStyleSheet("color: #6b6b6b; font-size: 11px;");
     footer->setAlignment(Qt::AlignCenter);
     footer->setFixedHeight(18);
