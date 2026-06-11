@@ -1,9 +1,5 @@
 #pragma once
 
-#include <opencv2/core.hpp>
-
-class QImage;
-
 #ifdef slots
 #pragma push_macro("slots")
 #undef slots
@@ -28,6 +24,8 @@ class QImage;
 #undef HANDWRITING_RECOGNITION_RESTORE_SLOTS_MACRO
 #endif
 
+#include <QImage>
+
 #include <string>
 #include <vector>
 
@@ -39,9 +37,7 @@ struct PredictResult {
 class DigitRecognizer {
 public:
     explicit DigitRecognizer(const std::string& modelPath, bool useCuda);
-    int predict(const cv::Mat& inputImage);
     int predict(const QImage& inputImage);
-    PredictResult predictWithConfidence(const cv::Mat& inputImage);
     PredictResult predictWithConfidence(const QImage& inputImage);
     const std::string& deviceName() const;
     void warmUp();
@@ -50,6 +46,4 @@ private:
     torch::jit::script::Module model;
     torch::Device device = torch::kCPU;
     std::string deviceName_ = "cpu";
-
-    std::vector<float> preprocess(const cv::Mat& img);
 };

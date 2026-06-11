@@ -279,69 +279,51 @@ traced.save(str(traced_path))
 
 #### 4.2.1 预处理流程
 
-用户在画板上写的数字，不能直接送给模型——需要先转换成和 MNIST 训练数据相同的格式。这个预处理过程在 C++ 端的 `DigitRecognizer::preprocess()` 中实现，分为五个步骤：
+用户在画板上写的数字，不能直接送给模型——需要先转换成和 MNIST 训练数据相同的格式。这个预处理过程在 C++ 端的 `normalizeToMnist()` 中实现，使用纯 Qt API，分为五个步骤：
 
-**第一步：转为灰度图。** 如果输入是彩色图片（3 通道或 4 通道），先转为单通道灰度图，去掉颜色信息的干扰。
+**第一步：转为灰度图。** 调用 `QImage::convertToFormat(Format_Grayscale8)` 将画布图像转为单通道灰度图。
 
 **第二步：找到笔迹边界。** 逐像素扫描整张图片，找出灰度值低于 245 的像素（即"墨迹"区域）的上下左右边界。这一步确定了用户写的数字在画布上的实际位置。
 
 **第三步：居中裁切为正方形。** 以笔迹边界为基础，四周各扩展 4 个像素的边距，然后裁切为正方形（以宽高中较长的一边为准），短边方向用白色填充。这样做是为了让数字居中，并且保持原始的宽高比。
 
-**第四步：缩放到 28×28。** 使用 OpenCV 的 `cv::resize` 函数将正方形图片缩放到 28×28 像素。缩放使用 `INTER_AREA` 算法，它在缩小图片时效果比较好，不会产生明显的锯齿。
+**第四步：缩放到 28×28。** 使用 `QImage::scaled(28, 28, SmoothTransformation)` 将正方形图片缩放到 28×28 像素。
 
 **第五步：归一化。** 将像素值从 0-255 映射到 0-1 范围，然后做反转（因为画板是白底黑字，而 MNIST 是黑底白字），最后减去均值 0.1307 并除以标准差 0.3081，和训练时的处理保持一致。
 
-这五步预处理的顺序和参数都是精心设计的，尤其"居中裁切"这一步对识别准确率影响很大——如果用户把数字写在画布角落，不居中就直接缩放的话，模型可能无法正确识别。
-
-以下是 `src/recognizer.cpp` 中预处理的核心实现（已简化部分边界检查）：
+以下是 `src/recognizer.cpp` 中预处理的核心实现：
 
 ```cpp
-std::vector<float> DigitRecognizer::preprocess(const cv::Mat& img)
+std::vector<float> normalizeToMnist(const QImage& grayImage)
 {
-    // 第一步：转为灰度图
-    cv::Mat gray;
-    if (img.channels() == 3)
-        cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
-    else if (img.channels() == 4)
-        cv::cvtColor(img, gray, cv::COLOR_BGRA2GRAY);
-    else
-        gray = img.clone();
-
     // 第二步：找到笔迹边界（灰度值 < 245 的像素）
-    int left = cols, top = rows, right = -1, bottom = -1;
-    for (int row = 0; row < rows; ++row)
-        for (int col = 0; col < cols; ++col) {
-            if (source[row * cols + col] < 245) {
-                left  = std::min(left, col);
-                top   = std::min(top, row);
-                right = std::max(right, col);
-                bottom = std::max(bottom, row);
+    QRect inkBounds;
+    for (int row = 0; row < grayImage.height(); ++row) {
+        const auto* line = grayImage.constScanLine(row);
+        for (int col = 0; col < grayImage.width(); ++col) {
+            if (static_cast<unsigned char>(line[col]) < 245) {
+                // 更新 inkBounds ...
             }
         }
+    }
 
     // 第三步：扩展边距，居中裁切为正方形
-    left = std::max(0, left - 4);
-    top  = std::max(0, top - 4);
-    right  = std::min(cols - 1, right + 4);
-    bottom = std::min(rows - 1, bottom + 4);
-    int side = std::max(right - left + 1, bottom - top + 1);
-    cv::Mat padded(side, side, CV_8UC1);
-    std::fill(padded.data, padded.data + side * side, 255);  // 白色填充
-
-    // 将笔迹复制到正方形中心
-    int offsetX = (side - (right - left + 1)) / 2;
-    int offsetY = (side - (bottom - top + 1)) / 2;
-    // ... memcpy 到 padded 对应位置 ...
+    inkBounds = inkBounds.adjusted(-4, -4, 4, 4).intersected(grayImage.rect());
+    const int side = std::max(inkBounds.width(), inkBounds.height());
+    QImage padded(side, side, QImage::Format_Grayscale8);
+    padded.fill(Qt::white);
+    QPainter painter(&padded);
+    painter.drawImage(QPoint(offsetX, offsetY), grayImage.copy(inkBounds));
 
     // 第四步：缩放到 28×28
-    cv::Mat resized;
-    cv::resize(padded, resized, cv::Size(28, 28), 0.0, 0.0, cv::INTER_AREA);
+    const QImage resized = padded.scaled(28, 28, Qt::IgnoreAspectRatio,
+                                         Qt::SmoothTransformation);
 
     // 第五步：归一化（反转 + 减均值除标准差）
     std::vector<float> normalized(28 * 28, 0.0f);
     for (int row = 0; row < 28; ++row)
         for (int col = 0; col < 28; ++col) {
-            float ink = 1.0f - float(resizedData[row * 28 + col]) / 255.0f;
+            float ink = 1.0f - float(line[col]) / 255.0f;
             normalized[row * 28 + col] = (ink - 0.1307f) / 0.3081f;
         }
     return normalized;
@@ -357,13 +339,13 @@ std::vector<float> DigitRecognizer::preprocess(const cv::Mat& img)
 以下是 `src/recognizer.cpp` 中的推理代码：
 
 ```cpp
-int DigitRecognizer::predict(const cv::Mat& inputImage)
+PredictResult DigitRecognizer::predictWithConfidence(const QImage& inputImage)
 {
-    std::vector<float> processed = preprocess(inputImage);
+    const QImage gray = inputImage.convertToFormat(QImage::Format_Grayscale8);
+    std::vector<float> processed = normalizeToMnist(gray);
     if (processed.size() != 28 * 28)
         throw std::runtime_error("Input image is empty");
 
-    // 将预处理后的数据转为 [1, 1, 28, 28] 的张量
     auto input = torch::from_blob(
         processed.data(), {1, 1, 28, 28},
         torch::TensorOptions().dtype(torch::kFloat32)
@@ -375,9 +357,13 @@ int DigitRecognizer::predict(const cv::Mat& inputImage)
     std::vector<torch::jit::IValue> inputs;
     inputs.emplace_back(input);
 
-    // 前向传播，取概率最大的类别
     torch::Tensor logits = model.forward(inputs).toTensor().to(torch::kCPU);
-    return static_cast<int>(logits.argmax(1).item<int64_t>());
+    torch::Tensor probs = torch::softmax(logits, 1);
+
+    PredictResult result;
+    result.digit = static_cast<int>(probs.argmax(1).item<int64_t>());
+    result.confidence = probs[0][result.digit].item<float>();
+    return result;
 }
 ```
 

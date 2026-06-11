@@ -221,6 +221,11 @@ void AirWriteController::start()
         QStringLiteral("--detect-max-width"), QStringLiteral("512"),
     };
 
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert("TF_CPP_MIN_LOG_LEVEL", "3");
+    env.insert("GLOG_minloglevel", "2");
+    trackerProcess_.setProcessEnvironment(env);
+
     trackerProcess_.start(python, arguments);
     if (!trackerProcess_.waitForStarted(4000)) {
         running_.store(false);
@@ -313,16 +318,10 @@ void AirWriteController::handleReadyReadStdOut()
 
 void AirWriteController::handleReadyReadStdErr()
 {
-    stderrBuffer_.append(trackerProcess_.readAllStandardError());
-    int newlineIndex = -1;
-    while ((newlineIndex = stderrBuffer_.indexOf('\n')) >= 0) {
-        const QByteArray line = stderrBuffer_.left(newlineIndex);
-        stderrBuffer_.remove(0, newlineIndex + 1);
-        const QString message = QString::fromUtf8(line).trimmed();
-        if (!message.isEmpty()) {
-            emit statusMessage(message);
-        }
-    }
+    // MediaPipe/TensorFlow 的 C++ 后端会向 stderr 输出 INFO/WARNING 级别的初始化日志，
+    // 这些不是真正的错误，通过环境变量 TF_CPP_MIN_LOG_LEVEL 和 GLOG_minloglevel 抑制。
+    // 此处不再将 stderr 逐行转发到 UI 日志。
+    trackerProcess_.readAllStandardError();
 }
 
 void AirWriteController::handleProcessError(QProcess::ProcessError error)

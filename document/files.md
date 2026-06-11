@@ -9,14 +9,9 @@ src/
 ├── main.cpp                    # 程序入口，初始化 QApplication 和 MainWindow
 ├── mainwindow.h/cpp            # 主窗口：UI 布局、摄像头预览、设备切换、识别调度、隔空书写
 ├── canvas.h/cpp                # 画布控件：鼠标绘制、程序化绘制（beginStroke/appendStroke/endStroke）
-├── recognizer.h/cpp            # 识别器：LibTorch 模型加载、图像预处理、推理、设备管理
-├── airwritecontroller.h/cpp    # 隔空书写控制器：Python 进程管理、帧发送、JSON 解析
-└── opencv2/
-    ├── core.hpp                # OpenCV 兼容层：cv::Mat、cv::Size、cv::Scalar、mean
-    └── imgproc.hpp             # OpenCV 兼容层：cvtColor（BGR/BGRA→灰度）、resize（最近邻）
+├── recognizer.h/cpp            # 识别器：LibTorch 模型加载、QImage 预处理、推理、设备管理
+└── airwritecontroller.h/cpp    # 隔空书写控制器：Python 进程管理、帧发送、JSON 解析
 ```
-
-`src/opencv2/` 不是真正的 OpenCV 库，而是纯 C++ 实现的轻量级 API 兼容层，使项目不需要安装 OpenCV 即可编译。详见 [opencv.md](opencv.md)。
 
 ---
 
@@ -55,7 +50,6 @@ scripts/
 | [model.md](model.md) | 模型训练、推理与设备管理：CNN 结构、训练策略、预处理、CPU/CUDA 切换、预热 |
 | [report.md](report.md) | 项目报告：背景、目标、方案、详细实现、实验结果、问题与解决、总结 |
 | [python.md](python.md) | Python 脚本说明：train_mnist.py、hand_tracker_service.py、export_test_images.py |
-| [opencv.md](opencv.md) | OpenCV 兼容层说明：core.hpp 和 imgproc.hpp 的接口与实现 |
 | [airwriting.md](airwriting.md) | 隔空书写架构：Qt-Python 通信、手势判定、食指锁定、稳定策略 |
 | [powershell.md](powershell.md) | PowerShell 脚本说明：package_release.ps1、deploy_qt_creator_build.ps1 等 |
 | [files.md](files.md) | 文件清单（本文件） |

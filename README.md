@@ -28,8 +28,7 @@ HandwritingRecognition/
 │   ├── mainwindow.h/cpp        # 主窗口（UI 布局、设备切换、隔空书写调度）
 │   ├── canvas.h/cpp            # 画布控件（鼠标绘制、程序化绘制）
 │   ├── recognizer.h/cpp        # 识别器（LibTorch 模型加载、预处理、推理）
-│   ├── airwritecontroller.h/cpp # 隔空书写控制器（Python 进程管理）
-│   └── opencv2/                # OpenCV 兼容层（core.hpp, imgproc.hpp）
+│   └── airwritecontroller.h/cpp # 隔空书写控制器（Python 进程管理）
 ├── scripts/                    # 脚本
 │   ├── train_mnist.py          # MNIST 模型训练与 TorchScript 导出
 │   ├── hand_tracker_service.py # 手部追踪服务（MediaPipe HandLandmarker）
@@ -108,7 +107,6 @@ run_handwriting_recog.bat
 | [项目报告](document/report.md) | 背景、目标、方案、详细实现、实验结果、问题与解决 |
 | [Python 脚本说明](document/python.md) | train_mnist.py、hand_tracker_service.py、export_test_images.py |
 | [隔空书写架构说明](document/airwriting.md) | Qt-Python 通信、手势判定、食指锁定、稳定策略 |
-| [OpenCV 兼容层说明](document/opencv.md) | src/opencv2/ 下的轻量级 API shim |
 | [PowerShell 脚本说明](document/powershell.md) | 打包、部署、清理、环境预检脚本 |
 | [文件清单](document/files.md) | 项目全部文件与目录说明 |
 | [环境快照](document/environment.txt) | Python、Qt、CUDA、LibTorch 版本记录 |
