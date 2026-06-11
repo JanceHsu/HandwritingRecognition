@@ -50,7 +50,6 @@ private:
     std::atomic_bool running_ = false;
     QProcess trackerProcess_;
     QByteArray stdoutBuffer_;
-    QByteArray stderrBuffer_;
     bool trackingActive_ = false;
     QElapsedTimer trackingEmitTimer_;
     int trackingEmitIntervalMs_ = 16; // ms, ~60Hz default

@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMetaObject>
+#include <QProcessEnvironment>
 #include <QtEndian>
 
 #include <algorithm>
@@ -118,7 +119,6 @@ void AirWriteController::setCameraSelection(int index, const QString& name)
 void AirWriteController::clearProcessState()
 {
     stdoutBuffer_.clear();
-    stderrBuffer_.clear();
     trackingActive_ = false;
     trackingEmitTimer_.invalidate();
     frameEmitTimer_.invalidate();
