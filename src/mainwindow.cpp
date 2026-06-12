@@ -151,6 +151,12 @@ void MainWindow::buildUi()
         "QPushButton#primary:hover { background: #1565c0; }"
         "QPushButton#secondary { background: #eceff1; color: #202124; }"
         "QPushButton#secondary:hover { background: #d7dde2; }"
+        "QComboBox { border: 1px solid #d1d5db; border-radius: 8px; padding: 6px 12px; background: white; color: #1f1f1f; font-size: 14px; }"
+        "QComboBox:hover { border-color: #1e88e5; }"
+        "QComboBox::drop-down { border: none; width: 24px; }"
+        "QComboBox QAbstractItemView { background: white; color: #1f1f1f; border: 1px solid #d1d5db; selection-background-color: #e0e7ff; selection-color: #1f1f1f; outline: none; }"
+        "QComboBox QAbstractItemView::item { padding: 6px 12px; min-height: 24px; }"
+        "QComboBox QAbstractItemView::item:hover { background: #e0e7ff; color: #1f1f1f; }"
     );
 
     auto* rootLayout = new QHBoxLayout(centralWidget);
@@ -250,22 +256,19 @@ void MainWindow::buildUi()
     cudaCheckBox_ = new QCheckBox("使用 CUDA 进行推理", sideCard);
     cudaCheckBox_->setChecked(false);
     cudaCheckBox_->setEnabled(cudaAvailable_);
-    if (!cudaAvailable_) {
-        cudaCheckBox_->setToolTip("未检测到可用的 CUDA 设备");
-    }
     cudaCheckBox_->setStyleSheet("font-size: 13px; color: #202124; background: #FFFFFF;");
 
-    auto* airHintLabel = new QLabel("隔空手势识别：食指指尖用于落笔，中指抬起时暂停绘制", sideCard);
+    auto* hintLabel = new QLabel("【手写画布】\n请使用鼠标或触控板，在画布上书写 0 到 9 的单个数字。", sideCard);
+    hintLabel->setWordWrap(true);
+    hintLabel->setStyleSheet("color: #5f6368; font-size: 14px;");
+
+    auto* airHintLabel = new QLabel("【隔空手势识别】\n请确保手掌位于取景器中。同时伸出食指、中指以终止 / 暂停绘制；单独伸出食指进入绘制状态，画笔将跟踪食指指尖。", sideCard);
     airHintLabel->setWordWrap(true);
     airHintLabel->setStyleSheet("color: #5f6368; font-size: 13px;");
 
     mirrorPreviewCheckBox_ = new QCheckBox("镜像翻转摄像头画面", sideCard);
     mirrorPreviewCheckBox_->setChecked(false);
     mirrorPreviewCheckBox_->setStyleSheet("font-size: 13px; color: #202124; background: #FFFFFF;");
-    
-    auto* hintLabel = new QLabel("请在画布上书写 0 到 9 的数字", sideCard);
-    hintLabel->setWordWrap(true);
-    hintLabel->setStyleSheet("color: #5f6368; font-size: 14px;");
 
     recognizeButton_ = new QPushButton("识别", sideCard);
     recognizeButton_->setObjectName("primary");
@@ -286,10 +289,10 @@ void MainWindow::buildUi()
 
     sideLayout->addWidget(resultLabel_);
     sideLayout->addWidget(confidenceLabel_);
+    sideLayout->addWidget(hintLabel);
     sideLayout->addWidget(airHintLabel);
     sideLayout->addWidget(mirrorPreviewCheckBox_);
     sideLayout->addWidget(cudaCheckBox_);
-    sideLayout->addWidget(hintLabel);
     sideLayout->addStretch(1);
     sideLayout->addWidget(recognizeButton_);
     sideLayout->addWidget(clearButton_);
