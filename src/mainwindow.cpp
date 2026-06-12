@@ -574,6 +574,19 @@ void MainWindow::onAirTrackingUpdated(const QPointF& cursorPoint, const QSize& f
     trackerCursorValid_ = true;
     trackerDrawingActive_ = drawingActive;
 
+    if (trackingGestureLabel_) {
+        if (drawingActive) {
+            trackingGestureLabel_->setText("状态: 书写中");
+            trackingGestureLabel_->setStyleSheet("font-size: 12px; color: #16a34a; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px;");
+        } else if (airStrokeActive_ && airStrokeReleasePending_) {
+            trackingGestureLabel_->setText("状态: 缓冲中");
+            trackingGestureLabel_->setStyleSheet("font-size: 12px; color: #d97706; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px;");
+        } else {
+            trackingGestureLabel_->setText("状态: 空闲");
+            trackingGestureLabel_->setStyleSheet("font-size: 12px; color: #374151; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px;");
+        }
+    }
+
     const QPointF canvasPointF = mapCameraToCanvas(cursorPoint, frameSize, canvas_->size());
     if (!airSmoothedPointValid_) {
         airSmoothedPoint_ = canvasPointF;
@@ -648,15 +661,11 @@ void MainWindow::onAirTrackingLost()
 
 void MainWindow::onAirTrackingMetricsUpdated(float confidence, int gesture, bool indexTrusted)
 {
+    Q_UNUSED(gesture);
     if (trackingConfidenceLabel_) {
         trackingConfidenceLabel_->setText(QString("置信度: %1%").arg(confidence * 100.0f, 0, 'f', 1));
         const int green = static_cast<int>(confidence * 200);
         trackingConfidenceLabel_->setStyleSheet(QString("font-size: 12px; color: rgb(%1,%2,0); background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px;").arg(200 - green).arg(green));
-    }
-    if (trackingGestureLabel_) {
-        const QString gestureText = gesture == 1 ? "书写" : gesture == 2 ? "暂停" : "非书写";
-        trackingGestureLabel_->setText(QString("状态: %1").arg(gestureText));
-        trackingGestureLabel_->setStyleSheet(QString("font-size: 12px; color: %1; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px;").arg(gesture == 1 ? "#16a34a" : "#374151"));
     }
     if (trackingLockLabel_) {
         trackingLockLabel_->setText(QString("锁定: %1").arg(indexTrusted ? "可信" : "不可信"));

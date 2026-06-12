@@ -166,7 +166,7 @@ class TrackingState:
         self.idle_confirm_frames = 0
         self.missing_hand_frames = 0
 
-    def update_drawing_state(self, raw_active: bool, confidence: float) -> bool:
+    def update_drawing_state(self, raw_active: bool, confidence: float, gesture: int) -> bool:
         if raw_active and confidence >= 0.38:
             self.draw_confirm_frames += 1
             self.idle_confirm_frames = 0
@@ -178,8 +178,11 @@ class TrackingState:
                 self.draw_confirm_frames = max(0, self.draw_confirm_frames - 1)
             else:
                 self.draw_confirm_frames = 0
-            if self.drawing_active and self.idle_confirm_frames >= 6 and confidence < 0.25:
-                self.drawing_active = False
+            if self.drawing_active:
+                if gesture != 1:
+                    self.drawing_active = False
+                elif self.idle_confirm_frames >= 6 and confidence < 0.25:
+                    self.drawing_active = False
         return self.drawing_active
 
     def update_cursor(self, raw_x: float, raw_y: float, hand_scale: float, trusted: bool) -> tuple[float, float]:
@@ -645,6 +648,7 @@ def main() -> int:
                 drawing_active = tracking_state.update_drawing_state(
                     gesture == 1 or (index_up and index_trusted),
                     writing_confidence,
+                    gesture,
                 )
 
                 cx, cy = tracking_state.update_cursor(raw_x, raw_y, hand_scale, index_trusted)

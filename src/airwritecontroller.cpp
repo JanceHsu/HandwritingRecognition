@@ -178,7 +178,7 @@ void AirWriteController::trySendPendingFrame()
     const qint64 written = trackerProcess_.write(packet);
     if (written <= 0) {
         pendingFrame_ = frame;
-        emit statusMessage(QStringLiteral("向 Python 发送摄像头帧失败"));
+        emit statusMessage(QStringLiteral("向 Python 发送摄像头帧失败。"));
         return;
     }
 
@@ -202,7 +202,7 @@ void AirWriteController::start()
     const QString script = trackerScriptPath();
     if (script.isEmpty()) {
         running_.store(false);
-        emit statusMessage(QStringLiteral("未找到 Python 隔空追踪脚本"));
+        emit statusMessage(QStringLiteral("未找到 Python 隔空追踪脚本。"));
         return;
     }
 
@@ -229,11 +229,11 @@ void AirWriteController::start()
     trackerProcess_.start(python, arguments);
     if (!trackerProcess_.waitForStarted(4000)) {
         running_.store(false);
-        emit statusMessage(QStringLiteral("无法启动 Python 隔空追踪进程"));
+        emit statusMessage(QStringLiteral("无法启动 Python 隔空追踪进程。"));
         return;
     }
 
-    emit statusMessage(QStringLiteral("Python 隔空追踪服务已启动"));
+    emit statusMessage(QStringLiteral("Python 隔空追踪服务已启动。"));
 }
 
 void AirWriteController::stop()
@@ -333,7 +333,7 @@ void AirWriteController::handleProcessError(QProcess::ProcessError error)
 {
     if (error == QProcess::FailedToStart) {
         running_.store(false);
-        emit statusMessage(QStringLiteral("Python 隔空追踪进程启动失败"));
+        emit statusMessage(QStringLiteral("Python 隔空追踪进程启动失败。"));
         emit trackingLost();
     }
 }

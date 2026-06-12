@@ -697,7 +697,7 @@ def detection_worker():
 
 **书写置信度：** 不是简单的"伸/不伸"二值判断，而是一个 0 到 1 的连续置信度分数。它综合考虑了食指伸展程度、中指/无名指/小指的弯曲程度、食指指尖锁定的信任度等因素。
 
-**状态机：** 书写状态的切换不是瞬间完成的，而是需要连续若干帧的确认。从"跟踪"切换到"书写"需要 2 帧确认，从"书写"切换回"跟踪"需要 6 帧确认。这种滞后机制避免了单帧误检导致的频繁切换。
+**状态机：** 书写状态的切换不是瞬间完成的，而是需要确认。从"空闲"切换到"书写"需要连续 2 帧确认（confidence >= 0.38）。停止书写有两条路径：当手势明确离开 DRAW（如伸出其他手指，gesture 变为 0 或 2）时立即停止；当手势仍为 DRAW 但检测信号不稳定时，需要 confidence < 0.25 连续 6 帧后才停止。这种双路径设计既保证了手势切换的响应速度，又避免了单帧抖动导致的误停笔。
 
 以下是 `hand_tracker_service.py` 中手指伸展评分和书写置信度的核心代码：
 
@@ -743,8 +743,8 @@ def compute_writing_confidence(landmarks, hand_scale_px, index_trusted):
 ```
 
 ```python
-# 状态机：书写状态切换需要多帧确认
-def update_drawing_state(self, raw_active, confidence):
+# 状态机：书写状态切换
+def update_drawing_state(self, raw_active, confidence, gesture):
     if raw_active and confidence >= 0.38:
         self.draw_confirm_frames += 1
         self.idle_confirm_frames = 0
@@ -752,8 +752,11 @@ def update_drawing_state(self, raw_active, confidence):
             self.drawing_active = True    # 连续 2 帧确认 → 开始书写
     else:
         self.idle_confirm_frames += 1
-        if self.drawing_active and self.idle_confirm_frames >= 6 and confidence < 0.25:
-            self.drawing_active = False   # 连续 6 帧确认 → 停止书写
+        if self.drawing_active:
+            if gesture != 1:
+                self.drawing_active = False   # 手势离开 DRAW → 立即停止
+            elif self.idle_confirm_frames >= 6 and confidence < 0.25:
+                self.drawing_active = False   # 信号不稳定 → 6 帧后停止
     return self.drawing_active
 ```
 
