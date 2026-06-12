@@ -297,10 +297,15 @@ void AirWriteController::emitParsedLine(const QByteArray& line)
     }
 
     const QPointF cursorPoint = pointFromArray(object.value(QStringLiteral("cursor")));
+    const float confidence = static_cast<float>(object.value(QStringLiteral("confidence")).toDouble(0.0));
+    const int gesture = object.value(QStringLiteral("gesture")).toInt(0);
+    const bool indexTrusted = object.value(QStringLiteral("index_trusted")).toBool(false);
+
     trackingActive_ = true;
     if (!trackingEmitTimer_.isValid() || trackingEmitTimer_.elapsed() >= trackingEmitIntervalMs_) {
         trackingEmitTimer_.start();
         emit trackingUpdated(cursorPoint, frameSize, drawingActive);
+        emit trackingMetricsUpdated(confidence, gesture, indexTrusted);
     }
 }
 

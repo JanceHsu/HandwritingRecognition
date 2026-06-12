@@ -31,6 +31,7 @@ public slots:
 
 signals:
     void trackingUpdated(const QPointF& cursorPoint, const QSize& frameSize, bool drawingActive);
+    void trackingMetricsUpdated(float confidence, int gesture, bool indexTrusted);
     void trackingLost();
     void statusMessage(const QString& message);
 

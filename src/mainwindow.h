@@ -36,6 +36,7 @@ private slots:
     void onPreviewMirrorToggled(bool checked);
     void onCameraFrameChanged(const QVideoFrame& frame);
     void onAirTrackingUpdated(const QPointF& cursorPoint, const QSize& frameSize, bool drawingActive);
+    void onAirTrackingMetricsUpdated(float confidence, int gesture, bool indexTrusted);
     void onAirTrackingLost();
 
 private:
@@ -57,6 +58,9 @@ private:
 
     Canvas* canvas_ = nullptr;
     QLabel* cameraPreviewLabel_ = nullptr;
+    QLabel* trackingConfidenceLabel_ = nullptr;
+    QLabel* trackingGestureLabel_ = nullptr;
+    QLabel* trackingLockLabel_ = nullptr;
     QLabel* cameraLabel_ = nullptr;
     QLabel* resultLabel_ = nullptr;
     QLabel* confidenceLabel_ = nullptr;

@@ -120,6 +120,7 @@ MainWindow::MainWindow(QWidget* parent)
     appendLog(QString("CUDA 可用性检测: %1").arg(cudaAvailable_ ? "true" : "false"));
 
     connect(airController_, &AirWriteController::trackingUpdated, this, &MainWindow::onAirTrackingUpdated);
+    connect(airController_, &AirWriteController::trackingMetricsUpdated, this, &MainWindow::onAirTrackingMetricsUpdated);
     connect(airController_, &AirWriteController::trackingLost, this, &MainWindow::onAirTrackingLost);
     connect(airController_, &AirWriteController::statusMessage, this, &MainWindow::appendLog);
 
@@ -177,7 +178,7 @@ void MainWindow::buildUi()
 
     cameraPreviewLabel_ = new QLabel("摄像头未开启", cameraCard);
     cameraPreviewLabel_->setAlignment(Qt::AlignCenter);
-    cameraPreviewLabel_->setMinimumSize(400, 240);
+    cameraPreviewLabel_->setMinimumSize(320, 180);
     cameraPreviewLabel_->setStyleSheet(
         "QLabel { background: #111827; color: #cbd5e1; border-radius: 12px; border: 1px solid #374151; font-size: 14px; }"
     );
@@ -186,10 +187,33 @@ void MainWindow::buildUi()
     airModeButton_->setCheckable(true);
     airModeButton_->setObjectName("primary");
 
+    auto* trackingMetricsLayout = new QHBoxLayout();
+    trackingMetricsLayout->setSpacing(12);
+
+    trackingConfidenceLabel_ = new QLabel("置信度: --", cameraCard);
+    trackingConfidenceLabel_->setStyleSheet("font-size: 12px; color: #374151; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px;");
+    trackingConfidenceLabel_->setFixedHeight(28);
+    trackingConfidenceLabel_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+    trackingGestureLabel_ = new QLabel("手势: --", cameraCard);
+    trackingGestureLabel_->setStyleSheet("font-size: 12px; color: #374151; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px;");
+    trackingGestureLabel_->setFixedHeight(28);
+    trackingGestureLabel_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+    trackingLockLabel_ = new QLabel("锁定: --", cameraCard);
+    trackingLockLabel_->setStyleSheet("font-size: 12px; color: #374151; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px;");
+    trackingLockLabel_->setFixedHeight(28);
+    trackingLockLabel_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+    trackingMetricsLayout->addWidget(trackingConfidenceLabel_);
+    trackingMetricsLayout->addWidget(trackingGestureLabel_);
+    trackingMetricsLayout->addWidget(trackingLockLabel_);
+
     cameraLayout->addWidget(cameraTitle);
     cameraLayout->addWidget(cameraLabel_);
     cameraLayout->addWidget(cameraComboBox_);
     cameraLayout->addWidget(cameraPreviewLabel_, 1);
+    cameraLayout->addLayout(trackingMetricsLayout);
     cameraLayout->addWidget(airModeButton_);
 
     auto* canvasCard = new QFrame(centralWidget);
@@ -218,7 +242,7 @@ void MainWindow::buildUi()
     resultLabel_->setObjectName("result");
     resultLabel_->setWordWrap(true);
 
-    confidenceLabel_ = new QLabel("可信度：--", sideCard);
+    confidenceLabel_ = new QLabel("置信度：--", sideCard);
     confidenceLabel_->setObjectName("result");
     confidenceLabel_->setWordWrap(true);
     confidenceLabel_->setStyleSheet("font-size: 18px; font-weight: 600; color: #5f6368;");
@@ -277,7 +301,7 @@ void MainWindow::buildUi()
 
     setCentralWidget(centralWidget);
 
-    auto* footer = new QLabel("华南理工大学 高级程序设计教程 C++ II 大作业", this);
+    auto* footer = new QLabel("华南理工大学 计算机科学与工程学院 | 徐宇辉、杨群堡", this);
     footer->setStyleSheet("color: #6b6b6b; font-size: 11px;");
     footer->setAlignment(Qt::AlignCenter);
     footer->setFixedHeight(18);
@@ -326,7 +350,7 @@ void MainWindow::loadRecognizer()
     if (modelPath.isEmpty()) {
         setRecognitionEnabled(false);
         resultLabel_->setText(QStringLiteral("识别结果：模型加载失败。"));
-        confidenceLabel_->setText(QStringLiteral("可信度：--"));
+        confidenceLabel_->setText(QStringLiteral("置信度：--"));
         appendLog(QStringLiteral("模型加载失败: 未找到可用的 MNIST 模型文件。"));
         return;
     }
@@ -350,7 +374,7 @@ void MainWindow::loadRecognizer()
         recognizer_ = nullptr;
         setRecognitionEnabled(false);
         resultLabel_->setText(QStringLiteral("识别结果：模型加载失败。"));
-        confidenceLabel_->setText(QStringLiteral("可信度：--"));
+        confidenceLabel_->setText(QStringLiteral("置信度：--"));
         appendLog(QString("模型加载失败: %1").arg(error.what()));
     }
 
@@ -617,6 +641,27 @@ void MainWindow::onAirTrackingLost()
     trackerDrawingActive_ = false;
     airStrokeReleasePending_ = false;
     finalizeAirStroke();
+    if (trackingConfidenceLabel_) trackingConfidenceLabel_->setText("置信度: --");
+    if (trackingGestureLabel_) trackingGestureLabel_->setText("状态: --");
+    if (trackingLockLabel_) trackingLockLabel_->setText("锁定: --");
+}
+
+void MainWindow::onAirTrackingMetricsUpdated(float confidence, int gesture, bool indexTrusted)
+{
+    if (trackingConfidenceLabel_) {
+        trackingConfidenceLabel_->setText(QString("置信度: %1%").arg(confidence * 100.0f, 0, 'f', 1));
+        const int green = static_cast<int>(confidence * 200);
+        trackingConfidenceLabel_->setStyleSheet(QString("font-size: 12px; color: rgb(%1,%2,0); background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px;").arg(200 - green).arg(green));
+    }
+    if (trackingGestureLabel_) {
+        const QString gestureText = gesture == 1 ? "书写" : gesture == 2 ? "暂停" : "非书写";
+        trackingGestureLabel_->setText(QString("状态: %1").arg(gestureText));
+        trackingGestureLabel_->setStyleSheet(QString("font-size: 12px; color: %1; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px;").arg(gesture == 1 ? "#16a34a" : "#374151"));
+    }
+    if (trackingLockLabel_) {
+        trackingLockLabel_->setText(QString("锁定: %1").arg(indexTrusted ? "可信" : "不可信"));
+        trackingLockLabel_->setStyleSheet(QString("font-size: 12px; color: %1; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px;").arg(indexTrusted ? "#16a34a" : "#9ca3af"));
+    }
 }
 
 bool MainWindow::startAirWriting()
@@ -705,8 +750,15 @@ void MainWindow::onRecognize()
         const PredictResult result = recognizer_->predictWithConfidence(image);
         const float confidencePercent = result.confidence * 100.0f;
         resultLabel_->setText(QString("识别结果：%1").arg(result.digit));
-        confidenceLabel_->setText(QString("可信度：%1%").arg(confidencePercent, 0, 'f', 2));
-        appendLog(QString("识别完成。结果：%1，可信度：%2%").arg(result.digit).arg(confidencePercent, 0, 'f', 2));
+        confidenceLabel_->setText(QString("置信度：%1%").arg(confidencePercent, 0, 'f', 2));
+        if (confidencePercent >= 90.0f) {
+            confidenceLabel_->setStyleSheet("font-size: 18px; font-weight: 600; color: #16a34a;");
+        } else if (confidencePercent >= 70.0f) {
+            confidenceLabel_->setStyleSheet("font-size: 18px; font-weight: 600; color: #5f6368;");
+        } else {
+            confidenceLabel_->setStyleSheet("font-size: 18px; font-weight: 600; color: #dc2626;");
+        }
+        appendLog(QString("识别完成。结果：%1，置信度：%2%").arg(result.digit).arg(confidencePercent, 0, 'f', 2));
     } catch (const std::exception& error) {
         QMessageBox::critical(this, "识别失败", error.what());
         appendLog(QString("识别异常: %1").arg(error.what()));
@@ -720,7 +772,8 @@ void MainWindow::onClear()
 {
     canvas_->clear();
     resultLabel_->setText("识别结果：");
-    confidenceLabel_->setText("可信度：--");
+    confidenceLabel_->setText("置信度：--");
+    confidenceLabel_->setStyleSheet("font-size: 18px; font-weight: 600; color: #5f6368;");
     appendLog("清空画板。");
 }
 

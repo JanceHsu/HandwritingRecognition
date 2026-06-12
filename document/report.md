@@ -451,9 +451,9 @@ void DigitRecognizer::warmUp()
 
 主窗口采用左右分栏布局：
 
-**左侧** 分为上下两部分：上方是"隔空书写预览"区域，包含摄像头选择下拉框、摄像头预览画面（400×240 像素的深色区域）和"开启隔空书写"按钮；下方是"手写画布"区域，提供 280×280 像素的白色画布供用户鼠标书写。
+**左侧** 分为上下两部分：上方是"隔空书写预览"区域，包含摄像头选择下拉框、摄像头预览画面、三个实时追踪指标标签（置信度、手势、锁定状态）和"开启隔空书写"按钮；下方是"手写画布"区域，提供白色画布供用户鼠标书写。
 
-**右侧** 是控制面板，从上到下依次为：识别结果标签、可信度标签、隔空手势说明、摄像头镜像开关、CUDA 推理开关、操作提示、"识别"按钮、"清空"按钮、操作日志区域。
+**右侧** 是控制面板，从上到下依次为：识别结果标签、置信度标签（根据数值显示绿色/灰色/红色）、隔空手势说明、摄像头镜像开关、CUDA 推理开关、操作提示、"识别"按钮、"清空"按钮、操作日志区域。
 
 整个界面使用了现代的卡片式设计风格，控件有圆角和阴影效果，按钮有 hover 状态的颜色变化，整体视觉效果比较整洁。
 
@@ -628,18 +628,19 @@ void AirWriteController::trySendPendingFrame()
 }
 ```
 
-Python 端（`hand_tracker_service.py`）接收帧后只返回轻量 JSON：
+Python 端（`hand_tracker_service.py`）接收帧后返回轻量 JSON，包含指尖坐标、绘制状态和追踪指标：
 
 ```python
-# stdout 输出协议示例
 payload = {
     "type": "frame",
     "has_hand": last_has_hand,
     "drawing_active": last_drawing_active,
     "frame_size": [frame.shape[1], frame.shape[0]],
-    "cursor": last_cursor,   # [x, y] 食指指尖像素坐标
+    "cursor": last_cursor,           # [x, y] 食指指尖像素坐标
+    "confidence": last_confidence,    # 书写置信度 (0-1)
+    "gesture": last_gesture,          # 0=IDLE, 1=DRAW, 2=食指+中指
+    "index_trusted": last_index_trusted,  # 食指锁定是否可信
 }
-emit(payload)  # emit() 将 dict 序列化为一行 JSON 写入 stdout
 ```
 
 #### 4.4.2 手部检测

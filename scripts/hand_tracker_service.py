@@ -404,7 +404,8 @@ def compute_index_lock_trust(landmarks, hand_scale_px: float) -> bool:
 
     index_middle_gap_px = math.hypot(tip.x - middle_tip.x, tip.y - middle_tip.y) * max(1.0, hand_scale_px)
 
-    return (straight12 > 0.20 and straight23 > 0.10 and extension_gain > 0.02 and index_middle_gap_px > max(10.0, hand_scale_px * 0.10))
+    return (straight12 > 0.15 and straight23 > 0.08 and extension_gain > 0.01
+            and index_middle_gap_px > max(6.0, hand_scale_px * 0.04))
 
 
 def read_exact(stream, size: int) -> bytes | None:
@@ -557,6 +558,9 @@ def main() -> int:
     last_has_hand = False
     last_drawing_active = False
     last_cursor: list[int] | None = None
+    last_confidence = 0.0
+    last_gesture = 0
+    last_index_trusted = False
     last_seen_capture_seq = 0
 
     emit({"type": "status", "level": "info", "message": "手部跟踪已启动。"})
@@ -648,11 +652,17 @@ def main() -> int:
                 last_has_hand = True
                 last_drawing_active = drawing_active
                 last_cursor = [int(round(cx)), int(round(cy))]
+                last_confidence = round(writing_confidence, 3)
+                last_gesture = gesture
+                last_index_trusted = index_trusted
             else:
                 has_hand, hold_x, hold_y, draw_state = tracking_state.on_missing_hand(hand_scale)
                 last_has_hand = has_hand
                 last_drawing_active = draw_state
                 last_cursor = [int(round(hold_x)), int(round(hold_y))] if has_hand else None
+                last_confidence = 0.0
+                last_gesture = 0
+                last_index_trusted = False
 
             next_tracking_at = now + tracking_interval
 
@@ -662,6 +672,9 @@ def main() -> int:
                 "drawing_active": last_drawing_active,
                 "frame_size": [frame.shape[1], frame.shape[0]],
                 "cursor": last_cursor,
+                "confidence": last_confidence,
+                "gesture": last_gesture,
+                "index_trusted": last_index_trusted,
             }
             emit(payload)
 

@@ -148,7 +148,7 @@ void Canvas::drawLineTo(const QPoint& endPoint) {
 左右分栏：
 
 - **左侧**：上方隔空书写预览区（摄像头选择 + 预览画面 + 开关按钮），下方手写画布
-- **右侧**：识别结果、可信度、隔空手势说明、摄像头镜像开关、CUDA 推理开关、操作提示、识别/清空按钮、操作日志
+- **右侧**：识别结果、置信度、隔空手势说明、摄像头镜像开关、CUDA 推理开关、操作提示、识别/清空按钮、操作日志
 
 ### 3.3 空画板检测
 
@@ -166,7 +166,7 @@ void Canvas::drawLineTo(const QPoint& endPoint) {
 
 ### 4.1 信号与槽连接
 
-- "识别"按钮 → `onRecognize()`：获取画布图像 → `predictWithConfidence()` → 显示结果和可信度
+- "识别"按钮 → `onRecognize()`：获取画布图像 → `predictWithConfidence()` → 显示结果和置信度
 - "清空"按钮 → `onClear()`：重置画布和结果标签
 - CUDA 复选框 → `onCudaToggled()`：销毁识别器 → 以新设备重新加载
 - 识别期间按钮锁定，防止重复点击重入

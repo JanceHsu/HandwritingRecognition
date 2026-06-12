@@ -41,20 +41,55 @@ Qt 将当前摄像头帧压缩成 JPEG，并通过 `QProcess` stdin 发送给 `s
 - Python 只负责消费这些帧并做手部推理，不再输出任何画面。
 - 由于图像流不再从 Python 回传，旧方案中的卡死和轮询问题被移除。
 
-### Python 只回坐标
+### Python 返回数据
 
-Python 进程只通过 stdout 输出轻量 JSON：
+Python 进程通过 stdout 输出轻量 JSON：
 
 ```json
 {
+    "type": "frame",
     "has_hand": true,
     "drawing_active": true,
     "cursor": [320, 240],
-    "frame_size": [640, 480]
+    "frame_size": [640, 480],
+    "confidence": 0.72,
+    "gesture": 1,
+    "index_trusted": true
 }
 ```
 
-Qt 根据 cursor 和 frame_size 把指尖轨迹映射到 Canvas。
+Qt 根据 cursor 和 frame_size 把指尖轨迹映射到 Canvas，并在摄像头预览区域下方实时显示 `confidence`、`gesture`、`index_trusted` 三个追踪指标。
+
+**gesture 取值含义：**
+
+| 值 | 含义 | 说明 |
+|----|------|------|
+| 0 | IDLE | 非书写手势（握拳、张开手掌、其他手指组合） |
+| 1 | DRAW | 仅食指抬起，其余手指弯曲 — 触发书写 |
+| 2 | INDEX+MIDDLE | 食指和中指同时抬起 — 不触发书写，用于暂停绘制 |
+
+**confidence（书写置信度）**：0-1 的连续分数，综合考虑食指伸展程度、其他手指弯曲程度和食指锁定信任度。值越高表示"正在写字"的判断越确定。状态机要求 confidence >= 0.38 连续 2 帧才从 IDLE 切到 DRAW，confidence < 0.25 连续 6 帧才从 DRAW 切回 IDLE。
+
+**index_trusted（食指锁定信任度）**：布尔值，表示当前帧检测到的食指位置是否可靠。判断依据包括：
+- 食指骨骼段（MCP→PIP→DIP→TIP）的方向一致性
+- 食指伸展程度（指尖到 MCP 的距离 > PIP 到 MCP 的距离）
+- 食指与中指指尖的间距（两根手指不应重叠）
+
+当 index_trusted 为 false 时，追踪系统会沿历史轨迹预测食指位置，短时间不采纳新的检测结果，避免食指跳变到其他手指。
+
+---
+
+## 界面显示
+
+摄像头预览区域下方有三个实时指标标签：
+
+| 标签 | 数据来源 | 显示格式 | 颜色逻辑 |
+|------|---------|---------|---------|
+| 置信度 | `confidence` | `置信度: 72.0%` | 红(0%)→绿(100%) 渐变 |
+| 手势 | `gesture` | `手势: DRAW` / `IDLE` / `INDEX+MID` | DRAW 绿色，其余灰色 |
+| 锁定 | `index_trusted` | `锁定: 可信` / `不可信` | 可信绿色，不可信灰色 |
+
+手部丢失时三个标签重置为 `--`。
 
 ---
 
