@@ -3,7 +3,7 @@ build/
 dist/
 
 # ── 训练产物 ──
-#artifacts/
+artifacts/
 
 # ── Python ──
 __pycache__/
