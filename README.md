@@ -105,6 +105,7 @@ run_handwriting_recog.bat
 | [开发设计指导书](document/plan.md) | 分阶段开发全流程（环境准备→训练→推理→界面→集成→隔空书写→发布） |
 | [模型训练、推理与设备管理](document/model.md) | CNN 结构、训练策略、预处理、CPU/CUDA 切换、预热 |
 | [项目报告](document/report.md) | 背景、目标、方案、详细实现、实验结果、问题与解决 |
+| [项目创新点](document/innovation.md) | 多模态交互、CUDA 加速、可视化反馈、工程化架构等 |
 | [Python 脚本说明](document/python.md) | train_mnist.py、hand_tracker_service.py、export_test_images.py |
 | [隔空书写架构说明](document/airwriting.md) | Qt-Python 通信、手势判定、食指锁定、稳定策略 |
 | [PowerShell 脚本说明](document/powershell.md) | 打包、部署、清理、环境预检脚本 |

@@ -49,6 +49,7 @@ scripts/
 | [plan.md](plan.md) | 分阶段开发指导书：完整设计文档，覆盖环境准备到打包发布全流程 |
 | [model.md](model.md) | 模型训练、推理与设备管理：CNN 结构、训练策略、预处理、CPU/CUDA 切换、预热 |
 | [report.md](report.md) | 项目报告：背景、目标、方案、详细实现、实验结果、问题与解决、总结 |
+| [innovation.md](innovation.md) | 项目创新点：多模态交互、CUDA 加速、可视化反馈、工程化架构等 |
 | [python.md](python.md) | Python 脚本说明：train_mnist.py、hand_tracker_service.py、export_test_images.py |
 | [airwriting.md](airwriting.md) | 隔空书写架构：Qt-Python 通信、手势判定、食指锁定、稳定策略 |
 | [powershell.md](powershell.md) | PowerShell 脚本说明：package_release.ps1、deploy_qt_creator_build.ps1 等 |
