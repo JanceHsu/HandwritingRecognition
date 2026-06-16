@@ -6,6 +6,8 @@ TARGET = handwriting_recog
 CONFIG -= debug debug_and_release
 CONFIG += release c++17 warn_on force_debug_info
 
+RC_ICONS = $$PWD/assets/main.ico
+
 INCLUDEPATH += $$PWD/src
 
 # Allow environment variable override (consistent with CMake Torch_DIR)
