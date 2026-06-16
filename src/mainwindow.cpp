@@ -304,7 +304,7 @@ void MainWindow::buildUi()
 
     setCentralWidget(centralWidget);
 
-    auto* footer = new QLabel("华南理工大学 计算机科学与工程学院 | 徐宇辉、杨群堡", this);
+    auto* footer = new QLabel("Made by Jance Hsu @ SCSE, SCUT", this);
     footer->setStyleSheet("color: #6b6b6b; font-size: 11px;");
     footer->setAlignment(Qt::AlignCenter);
     footer->setFixedHeight(18);
