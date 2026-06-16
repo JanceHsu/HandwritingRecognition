@@ -32,11 +32,12 @@ HandwritingRecognition/
 ├── scripts/                    # 脚本
 │   ├── train_mnist.py          # MNIST 模型训练与 TorchScript 导出
 │   ├── hand_tracker_service.py # 手部追踪服务（MediaPipe HandLandmarker）
-│   ├── export_test_images.py   # 导出 MNIST 测试图片
-│   ├── package_release.ps1     # 发布打包脚本
 │   ├── deploy_qt_creator_build.ps1 # Qt Creator 构建部署脚本
-│   ├── clean_project.ps1       # 项目清理脚本
-│   └── prepare_libtorch_cuda.ps1   # CUDA 环境预检脚本
+│   └── project_operation/      # 项目运维脚本
+│       ├── export_test_images.py   # 导出 MNIST 测试图片
+│       ├── package_release.ps1     # 发布打包脚本
+│       ├── clean_project.ps1       # 项目清理脚本
+│       └── prepare_libtorch_cuda.ps1   # CUDA 环境预检脚本
 ├── document/                   # 项目文档
 ├── artifacts/                  # 训练产物（models/mnist_model.pt, models/model.pth）
 ├── dist/                       # 发布包输出
@@ -88,7 +89,7 @@ cmake --build build --config Release
 ### 3. 打包发布
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\package_release.ps1 -LibtorchDir D:\Develop\libtorch
+powershell -ExecutionPolicy Bypass -File scripts\project_operation\package_release.ps1 -LibtorchDir D:\Develop\libtorch
 ```
 
 ### 4. 启动程序

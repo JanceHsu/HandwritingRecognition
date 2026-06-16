@@ -17,11 +17,11 @@ if "%LIBTORCH_DEVICE%"=="" (
 
 if not exist "%DIST%\handwriting_recog.exe" (
     echo Release package not found. Building package first...
-    powershell -ExecutionPolicy Bypass -File "%ROOT%scripts\package_release.ps1" -LibtorchDir "%LIBTORCH_DIR%"
+    powershell -ExecutionPolicy Bypass -File "%ROOT%scripts\project_operation\package_release.ps1" -LibtorchDir "%LIBTORCH_DIR%"
 )
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "$buildExe = Join-Path '%ROOT%build\Release' 'handwriting_recog.exe'; $distExe = Join-Path '%DIST%' 'handwriting_recog.exe'; if (!(Test-Path $distExe) -or ((Test-Path $buildExe) -and ((Get-Item $buildExe).LastWriteTimeUtc -gt (Get-Item $distExe).LastWriteTimeUtc))) { & '%ROOT%scripts\package_release.ps1' -LibtorchDir '%LIBTORCH_DIR%' }"
+    "$buildExe = Join-Path '%ROOT%build\Release' 'handwriting_recog.exe'; $distExe = Join-Path '%DIST%' 'handwriting_recog.exe'; if (!(Test-Path $distExe) -or ((Test-Path $buildExe) -and ((Get-Item $buildExe).LastWriteTimeUtc -gt (Get-Item $distExe).LastWriteTimeUtc))) { & '%ROOT%scripts\project_operation\package_release.ps1' -LibtorchDir '%LIBTORCH_DIR%' }"
 
 set "PATH=%QT_BIN%;%LIBTORCH_BIN%;%PATH%"
 pushd "%DIST%"

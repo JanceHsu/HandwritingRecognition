@@ -905,7 +905,7 @@ void MainWindow::onAirTrackingUpdated(
 
 本项目同时维护两套构建入口，分别面向不同的使用场景：
 
-**命令行 CMake 构建**用于可复现的发布流程。构建命令通过 `-DCMAKE_PREFIX_PATH` 和 `-DTorch_DIR` 显式指定 Qt 和 LibTorch 的路径，使用 Visual Studio 2022 作为生成器。CMake 的 `find_package(Torch)` 会自动检测 CUDA 支持，配置正确的编译定义和链接器选项，包括关键的 `-INCLUDE:?warp_size@cuda@at@@YAHXZ` 链接器强制包含符号。构建完成后，`scripts/package_release.ps1` 负责将 Qt 运行库、LibTorch DLL 和模型文件复制到 `dist/` 发布目录，并生成一键启动脚本 `run_handwriting_recog.bat`。
+**命令行 CMake 构建**用于可复现的发布流程。构建命令通过 `-DCMAKE_PREFIX_PATH` 和 `-DTorch_DIR` 显式指定 Qt 和 LibTorch 的路径，使用 Visual Studio 2022 作为生成器。CMake 的 `find_package(Torch)` 会自动检测 CUDA 支持，配置正确的编译定义和链接器选项，包括关键的 `-INCLUDE:?warp_size@cuda@at@@YAHXZ` 链接器强制包含符号。构建完成后，`scripts/project_operation/package_release.ps1` 负责将 Qt 运行库、LibTorch DLL 和模型文件复制到 `dist/` 发布目录，并生成一键启动脚本 `run_handwriting_recog.bat`。
 
 **Qt Creator qmake 构建**用于日常开发调试。`HandwritingRecognition.pro` 中手动配置了 LibTorch 的头文件路径和库链接，并通过 `exists()` 条件判断自动检测 CUDA 版 LibTorch 并链接相应库。构建完成后，`QMAKE_POST_LINK` 自动调用 `scripts/deploy_qt_creator_build.ps1` 将 DLL 和模型文件部署到构建目录。
 

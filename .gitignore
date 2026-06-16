@@ -41,8 +41,6 @@ node_modules/
 
 # ── 参考资料与报告 ──
 reference/
-document/weekly.md
-homework/
 
 # ── 操作系统 ──
 .DS_Store

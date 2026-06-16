@@ -406,7 +406,7 @@ python scripts/hand_tracker_service.py --camera-index 0 --width 1280 --height 72
 
 ## 3. export_test_images.py —— 测试图片导出
 
-**路径**：`scripts/export_test_images.py`
+**路径**：`scripts/project_operation/export_test_images.py`
 
 **用途**：从 MNIST 测试集中导出若干张样本图片为 PNG 文件，用于 C++ 推理模块的离线验证。
 
@@ -428,7 +428,7 @@ python scripts/hand_tracker_service.py --camera-index 0 --width 1280 --height 72
 ### 3.3 使用示例
 
 ```powershell
-py -3.12 scripts\export_test_images.py --count 20 --output-dir test_images
+py -3.12 scripts\project_operation\export_test_images.py --count 20 --output-dir test_images
 ```
 
 执行后 `test_images/` 目录下会生成 20 张 28x28 的灰度 PNG 图片，每张图片的文件名包含其真实标签。这些图片可以直接被 C++ 端的 `cv::imread` 读取，送入 `DigitRecognizer::predict()` 验证推理结果是否正确。

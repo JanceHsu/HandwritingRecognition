@@ -30,11 +30,12 @@ src/
 scripts/
 ├── train_mnist.py              # MNIST 模型训练与 TorchScript 导出
 ├── hand_tracker_service.py     # 隔空书写手部追踪服务（MediaPipe HandLandmarker）
-├── export_test_images.py       # 导出 MNIST 测试图片供 C++ 推理验证
-├── package_release.ps1         # CMake Release 构建打包（windeployqt + DLL 复制 + 启动脚本生成）
 ├── deploy_qt_creator_build.ps1 # Qt Creator 构建自动部署（QMAKE_POST_LINK 调用）
-├── clean_project.ps1           # 清理 build/、dist/、Python 缓存
-└── prepare_libtorch_cuda.ps1   # CUDA 版 LibTorch 环境预检
+└── project_operation/          # 项目运维脚本
+    ├── export_test_images.py   # 导出 MNIST 测试图片供 C++ 推理验证
+    ├── package_release.ps1     # CMake Release 构建打包（windeployqt + DLL 复制 + 启动脚本生成）
+    ├── clean_project.ps1       # 清理 build/、dist/、Python 缓存
+    └── prepare_libtorch_cuda.ps1   # CUDA 版 LibTorch 环境预检
 ```
 
 详见 [python.md](python.md)（Python 脚本）和 [powershell.md](powershell.md)（PowerShell 脚本）。

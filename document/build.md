@@ -138,7 +138,7 @@ exists($$LIBTORCH_DIR/lib/torch_cuda.lib) {
 ## 5. 清理旧产物
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\clean_project.ps1
+powershell -ExecutionPolicy Bypass -File scripts\project_operation\clean_project.ps1
 ```
 
 清理范围：`build/`、`dist/`、Python 缓存。加 `-IncludeDataCache` 参数还会清理 MNIST 数据缓存和测试图片。
@@ -162,7 +162,7 @@ py -3.12 scripts\train_mnist.py --epochs 3 --batch-size 256 --output-dir artifac
 ## 7. 打包发布
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\package_release.ps1 -LibtorchDir D:\Develop\libtorch
+powershell -ExecutionPolicy Bypass -File scripts\project_operation\package_release.ps1 -LibtorchDir D:\Develop\libtorch
 ```
 
 打包脚本执行以下步骤：
@@ -247,8 +247,8 @@ run_handwriting_recog.bat
 |------|------|
 | `scripts/train_mnist.py` | MNIST 模型训练与 TorchScript 导出 |
 | `scripts/hand_tracker_service.py` | 隔空书写手部追踪服务 |
-| `scripts/package_release.ps1` | CMake Release 构建打包 |
+| `scripts/project_operation/package_release.ps1` | CMake Release 构建打包 |
 | `scripts/deploy_qt_creator_build.ps1` | Qt Creator 构建自动部署（QMAKE_POST_LINK 调用） |
-| `scripts/clean_project.ps1` | 清理构建产物 |
-| `scripts/prepare_libtorch_cuda.ps1` | CUDA 版 LibTorch 环境预检 |
-| `scripts/export_test_images.py` | 导出 MNIST 测试图片 |
+| `scripts/project_operation/clean_project.ps1` | 清理构建产物 |
+| `scripts/project_operation/prepare_libtorch_cuda.ps1` | CUDA 版 LibTorch 环境预检 |
+| `scripts/project_operation/export_test_images.py` | 导出 MNIST 测试图片 |

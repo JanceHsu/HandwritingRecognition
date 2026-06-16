@@ -38,14 +38,14 @@ QMAKE_POST_LINK += powershell -NoProfile -ExecutionPolicy Bypass -File $$PWD/scr
 
 ## 2. package_release.ps1
 
-**路径：** `scripts/package_release.ps1`
+**路径：** `scripts/project_operation/package_release.ps1`
 
 **用途：** 将 CMake Release 构建的产物打包为可分发的发布目录。收集可执行文件、模型文件、Qt 运行库、LibTorch DLL，并生成一键启动脚本 `run_handwriting_recog.bat`。
 
 **调用方式：**
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\package_release.ps1
+powershell -ExecutionPolicy Bypass -File scripts\project_operation\package_release.ps1
 ```
 
 **参数：**
@@ -72,7 +72,7 @@ powershell -ExecutionPolicy Bypass -File scripts\package_release.ps1
 
 ## 3. clean_project.ps1
 
-**路径：** `scripts/clean_project.ps1`
+**路径：** `scripts/project_operation/clean_project.ps1`
 
 **用途：** 清理项目构建产物和临时文件，将项目恢复到干净状态。
 
@@ -80,10 +80,10 @@ powershell -ExecutionPolicy Bypass -File scripts\package_release.ps1
 
 ```powershell
 # 基本清理（构建目录 + 发布目录 + Python 缓存）
-powershell -ExecutionPolicy Bypass -File scripts\clean_project.ps1
+powershell -ExecutionPolicy Bypass -File scripts\project_operation\clean_project.ps1
 
 # 包含 MNIST 数据缓存和测试图片
-powershell -ExecutionPolicy Bypass -File scripts\clean_project.ps1 -IncludeDataCache
+powershell -ExecutionPolicy Bypass -File scripts\project_operation\clean_project.ps1 -IncludeDataCache
 ```
 
 **参数：**
@@ -106,14 +106,14 @@ powershell -ExecutionPolicy Bypass -File scripts\clean_project.ps1 -IncludeDataC
 
 ## 4. prepare_libtorch_cuda.ps1
 
-**路径：** `scripts/prepare_libtorch_cuda.ps1`
+**路径：** `scripts/project_operation/prepare_libtorch_cuda.ps1`
 
 **用途：** CUDA 版 LibTorch 的环境预检脚本。验证指定的 CUDA LibTorch 目录结构是否完整，并输出后续的 CMake 构建命令。不会修改任何文件，仅做检查和提示。
 
 **调用方式：**
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\prepare_libtorch_cuda.ps1 -CudaLibtorchDir D:\Develop\libtorch-cuda
+powershell -ExecutionPolicy Bypass -File scripts\project_operation\prepare_libtorch_cuda.ps1 -CudaLibtorchDir D:\Develop\libtorch-cuda
 ```
 
 **参数：**
@@ -145,11 +145,11 @@ Qt Creator 构建
 
 CMake 构建 + 打包
   └─ cmake --build build --config Release
-  └─ package_release.ps1                 ← 手动调用
+  └─ project_operation/package_release.ps1  ← 手动调用
 
 环境准备
-  └─ prepare_libtorch_cuda.ps1           ← 手动调用（仅检查）
+  └─ project_operation/prepare_libtorch_cuda.ps1  ← 手动调用（仅检查）
 
 项目清理
-  └─ clean_project.ps1                   ← 手动调用
+  └─ project_operation/clean_project.ps1  ← 手动调用
 ```
